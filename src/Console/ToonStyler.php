@@ -2,7 +2,6 @@
 
 namespace DigitalCoreHub\Toon\Console;
 
-use Illuminate\Console\OutputStyle;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ToonStyler
@@ -125,4 +124,3 @@ class ToonStyler
         return '<fg=green>'.$trimmed.'</>';
     }
 }
-

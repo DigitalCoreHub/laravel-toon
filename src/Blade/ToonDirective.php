@@ -14,4 +14,3 @@ class ToonDirective
         return "<?php echo '<pre>' . e(\\DigitalCoreHub\\Toon\\Facades\\Toon::encode({$expression})) . '</pre>'; ?>";
     }
 }
-

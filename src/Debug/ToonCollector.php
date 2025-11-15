@@ -145,4 +145,3 @@ class ToonCollector extends DataCollector implements DataCollectorInterface, Ren
         ];
     }
 }
-
