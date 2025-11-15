@@ -2,9 +2,11 @@
 
 A lightweight Laravel package that converts standard JSON into **TOON** format - a human-readable, ultra-minimal, line-based data format.
 
-[![Latest Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Latest Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-red.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
+
+**🇹🇷 [Türkçe Dokümantasyon için tıklayın](README_TR.md)**
 
 ## Features
 
@@ -134,6 +136,89 @@ $json = [
 $toon = Toon::encode($json);
 ```
 
+### Blade Directive
+
+Use the `@toon()` directive in your Blade templates to display TOON output:
+
+```blade
+@toon($data)
+```
+
+The directive automatically:
+- Encodes the data to TOON format
+- Wraps it in a `<pre>` tag
+- Escapes HTML for safe output
+
+**Example:**
+
+```blade
+<!-- In your Blade template -->
+<div class="toon-output">
+    @toon(['id' => 1, 'name' => 'Test Product', 'price' => 99.99])
+</div>
+```
+
+**Output:**
+```html
+<div class="toon-output">
+    <pre>id, name, price;
+1, Test Product, 99.99</pre>
+</div>
+```
+
+### Logging Support
+
+Log data in TOON format using the `Log::toon()` macro:
+
+```php
+use Illuminate\Support\Facades\Log;
+
+$data = ['id' => 1, 'name' => 'Test'];
+Log::toon($data); // Logs at 'info' level
+
+// Specify log level
+Log::toon($data, 'debug');
+
+// Specify channel
+Log::toon($data, 'info', 'daily');
+```
+
+The macro encodes your data to TOON format and logs it through Laravel's logging system.
+
+### Console Styling
+
+Get colored TOON output for console/terminal:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+$data = ['id' => 1, 'name' => 'Test', 'active' => true];
+$colored = Toon::console($data, $output); // $output is optional OutputInterface
+
+// In Artisan commands
+$this->line(Toon::console($data, $this->output));
+```
+
+**Syntax Highlighting:**
+- Keys: Yellow
+- Strings: Green
+- Numbers: Blue
+- Booleans: Magenta
+- Brackets: Cyan
+
+### Laravel Debugbar Integration
+
+If you have [Laravel Debugbar](https://github.com/barryvdh/laravel-debugbar) installed, the package automatically registers a TOON panel that shows:
+
+- Recent encode/decode operations
+- Performance timing (duration in milliseconds)
+- Metadata (key count, row count, line count)
+- Input/output preview
+
+The integration is **automatic** - no configuration needed. If Debugbar is not installed, the package works normally without it.
+
+**Note:** Debugbar integration is optional and does not affect package functionality if Debugbar is not installed.
+
 ### Decode TOON to Array
 
 ```php
@@ -254,16 +339,23 @@ Convert JSON files to TOON format using the Artisan command:
 php artisan toon:encode input.json output.toon
 ```
 
+**Options:**
+- `--preview` or `-p`: Show colored preview of the output
+
 **Example:**
 
 ```bash
 # Convert a JSON file
 php artisan toon:encode storage/data.json storage/data.toon
 
+# With colored preview
+php artisan toon:encode storage/data.json storage/data.toon --preview
+
 # The command will:
 # - Read JSON from input.json
 # - Convert to TOON format
 # - Save to output.toon
+# - Show colored preview if --preview flag is used
 ```
 
 ### Decode: TOON → JSON
@@ -273,6 +365,9 @@ Convert TOON files to JSON format using the Artisan command:
 ```bash
 php artisan toon:decode input.toon output.json
 ```
+
+**Options:**
+- `--preview` or `-p`: Show colored preview of the input
 
 **Example:**
 
@@ -488,14 +583,18 @@ reviews[2]{
 
 ## Version
 
-Current version: **v0.3.0**
+Current version: **v0.4.0**
 
 This version includes:
 - ✅ JSON → TOON encoding
 - ✅ TOON → JSON decoding
-- ✅ CLI commands (encode & decode)
+- ✅ CLI commands (encode & decode) with colored preview
 - ✅ Global helper functions (`toon_encode`, `toon_decode`)
 - ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)
+- ✅ Blade directive `@toon()` for easy template integration
+- ✅ Laravel Debugbar integration (auto-detected)
+- ✅ Log::toon() macro for logging support
+- ✅ Console styling with syntax highlighting
 - ✅ Configurable formatting (indentation, separators, line breaks)
 - ✅ Improved exception messages with line numbers
 - ✅ Facade and DI support

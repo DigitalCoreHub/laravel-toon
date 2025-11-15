@@ -14,7 +14,7 @@ class ToonDecodeCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'toon:decode {input : The input TOON file path} {output : The output JSON file path}';
+    protected $signature = 'toon:decode {input : The input TOON file path} {output : The output JSON file path} {--preview|p : Show colored preview of the input}';
 
     /**
      * The console command description.
@@ -59,6 +59,13 @@ class ToonDecodeCommand extends Command
 
             $this->info('Successfully converted TOON to JSON format!');
             $this->info("Output saved to: {$outputPath}");
+
+            // Show preview with colors
+            if ($this->option('preview') || $this->option('p')) {
+                $this->newLine();
+                $this->line('Preview (TOON input):');
+                $this->line(Toon::console($jsonData, $this->output));
+            }
 
             return Command::SUCCESS;
         } catch (InvalidToonFormatException $e) {

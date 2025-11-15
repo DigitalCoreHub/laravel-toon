@@ -2,9 +2,11 @@
 
 Standart JSON'u **TOON** formatına dönüştüren hafif bir Laravel paketi - insan tarafından okunabilir, ultra-minimal, satır tabanlı bir veri formatı.
 
-[![Son Sürüm](https://img.shields.io/badge/sürüm-0.3.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Son Sürüm](https://img.shields.io/badge/sürüm-0.4.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-kırmızı.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-mavi.svg)](https://php.net)
+
+**🇬🇧 [English Documentation](README.md)**
 
 ## Özellikler
 
@@ -134,6 +136,89 @@ $array = Toon::fromToon("id, name;\n1, Test")->decode();
 
 Fluent interface özellikle method chaining ve okunabilirlik için kullanışlıdır.
 
+### Blade Directive
+
+Blade şablonlarınızda TOON çıktısını göstermek için `@toon()` direktifini kullanın:
+
+```blade
+@toon($data)
+```
+
+Direktif otomatik olarak:
+- Veriyi TOON formatına kodlar
+- `<pre>` etiketi ile sarar
+- Güvenli çıktı için HTML'i escape eder
+
+**Örnek:**
+
+```blade
+<!-- Blade şablonunuzda -->
+<div class="toon-output">
+    @toon(['id' => 1, 'name' => 'Test Ürünü', 'price' => 99.99])
+</div>
+```
+
+**Çıktı:**
+```html
+<div class="toon-output">
+    <pre>id, name, price;
+1, Test Ürünü, 99.99</pre>
+</div>
+```
+
+### Logging Desteği
+
+`Log::toon()` macro'sunu kullanarak verileri TOON formatında loglayın:
+
+```php
+use Illuminate\Support\Facades\Log;
+
+$data = ['id' => 1, 'name' => 'Test'];
+Log::toon($data); // 'info' seviyesinde loglar
+
+// Log seviyesi belirt
+Log::toon($data, 'debug');
+
+// Kanal belirt
+Log::toon($data, 'info', 'daily');
+```
+
+Macro verinizi TOON formatına kodlar ve Laravel'in logging sistemi üzerinden loglar.
+
+### Console Styling
+
+Konsol/terminal için renkli TOON çıktısı alın:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+$data = ['id' => 1, 'name' => 'Test', 'active' => true];
+$colored = Toon::console($data, $output); // $output opsiyonel OutputInterface
+
+// Artisan komutlarında
+$this->line(Toon::console($data, $this->output));
+```
+
+**Syntax Highlighting:**
+- Anahtarlar: Sarı
+- Stringler: Yeşil
+- Sayılar: Mavi
+- Boolean'lar: Magenta
+- Parantezler: Cyan
+
+### Laravel Debugbar Entegrasyonu
+
+[Laravel Debugbar](https://github.com/barryvdh/laravel-debugbar) yüklüyse, paket otomatik olarak şunları gösteren bir TOON paneli kaydeder:
+
+- Son encode/decode işlemleri
+- Performans zamanlaması (milisaniye cinsinden süre)
+- Metadata (anahtar sayısı, satır sayısı, satır sayısı)
+- Giriş/çıkış önizlemesi
+
+Entegrasyon **otomatik** - yapılandırma gerekmez. Debugbar yüklü değilse, paket normal şekilde çalışmaya devam eder.
+
+**Not:** Debugbar entegrasyonu opsiyoneldir ve Debugbar yüklü değilse paket işlevselliğini etkilemez.
+
 ### TOON'u Diziye Dönüştürme (Decode)
 
 ```php
@@ -254,16 +339,23 @@ JSON dosyalarını TOON formatına dönüştürmek için Artisan komutunu kullan
 php artisan toon:encode input.json output.toon
 ```
 
+**Seçenekler:**
+- `--preview` veya `-p`: Renkli önizleme göster
+
 **Örnek:**
 
 ```bash
 # Bir JSON dosyasını dönüştür
 php artisan toon:encode storage/data.json storage/data.toon
 
+# Renkli önizleme ile
+php artisan toon:encode storage/data.json storage/data.toon --preview
+
 # Komut şunları yapacak:
 # - input.json'dan JSON okur
 # - TOON formatına dönüştürür
 # - output.toon'a kaydeder
+# - --preview bayrağı kullanılırsa renkli önizleme gösterir
 ```
 
 ### Decode: TOON → JSON
@@ -273,6 +365,9 @@ TOON dosyalarını JSON formatına dönüştürmek için Artisan komutunu kullan
 ```bash
 php artisan toon:decode input.toon output.json
 ```
+
+**Seçenekler:**
+- `--preview` veya `-p`: Girişin renkli önizlemesini göster
 
 **Örnek:**
 
@@ -488,14 +583,18 @@ reviews[2]{
 
 ## Sürüm
 
-Mevcut sürüm: **v0.3.0**
+Mevcut sürüm: **v0.4.0**
 
 Bu sürüm şunları içerir:
 - ✅ JSON → TOON kodlama
 - ✅ TOON → JSON çözümleme
-- ✅ CLI komutları (encode & decode)
+- ✅ CLI komutları (encode & decode) renkli önizleme ile
 - ✅ Global helper fonksiyonlar (`toon_encode`, `toon_decode`)
 - ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)
+- ✅ Blade directive `@toon()` kolay şablon entegrasyonu için
+- ✅ Laravel Debugbar entegrasyonu (otomatik algılanır)
+- ✅ Log::toon() macro logging desteği için
+- ✅ Syntax highlighting ile console styling
 - ✅ Yapılandırılabilir formatlama (girinti, ayırıcılar, satır sonları)
 - ✅ Satır numaraları ile iyileştirilmiş exception mesajları
 - ✅ Facade ve DI desteği

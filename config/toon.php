@@ -60,4 +60,15 @@ return [
     |
     */
     'preserve_order' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Logging Channel
+    |--------------------------------------------------------------------------
+    |
+    | The logging channel to use when using Log::toon().
+    | Set to null to use the default channel.
+    |
+    */
+    'logging_channel' => 'stack',
 ];

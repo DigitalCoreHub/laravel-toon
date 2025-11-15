@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Facade;
 /**
  * @method static string encode(array|string $json)
  * @method static array decode(string $toon)
+ * @method static string console(array|string $data, ?\Symfony\Component\Console\Output\OutputInterface $output = null)
  * @method static \DigitalCoreHub\Toon\ToonBuilder fromJson(string $json)
  * @method static \DigitalCoreHub\Toon\ToonBuilder fromArray(array $array)
  * @method static \DigitalCoreHub\Toon\ToonBuilder fromToon(string $toon)

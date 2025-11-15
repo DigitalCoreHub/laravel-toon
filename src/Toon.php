@@ -2,7 +2,9 @@
 
 namespace DigitalCoreHub\Toon;
 
+use DigitalCoreHub\Toon\Console\ToonStyler;
 use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class Toon
 {
@@ -54,6 +56,8 @@ class Toon
      */
     public function encode(array|string $json): string
     {
+        $startTime = microtime(true);
+
         // If input is a JSON string, decode it first
         if (is_string($json)) {
             $decoded = json_decode($json, true);
@@ -63,7 +67,13 @@ class Toon
             $json = $decoded;
         }
 
-        return $this->encodeValue($json, 0);
+        $result = $this->encodeValue($json, 0);
+        $duration = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+
+        // Track in Debugbar if available
+        $this->trackEncode($json, $result, $duration);
+
+        return $result;
     }
 
     /**
@@ -73,6 +83,7 @@ class Toon
      */
     public function decode(string $toon): array
     {
+        $startTime = microtime(true);
         $toon = trim($toon);
 
         if (empty($toon)) {
@@ -86,8 +97,62 @@ class Toon
         }
 
         $result = $this->parseToon($lines, 0);
+        $duration = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+
+        // Track in Debugbar if available
+        $this->trackDecode($toon, $result['data'], $duration);
 
         return $result['data'];
+    }
+
+    /**
+     * Track encode operation in Debugbar.
+     */
+    protected function trackEncode(mixed $data, string $toon, float $duration): void
+    {
+        if (! $this->hasDebugbar()) {
+            return;
+        }
+
+        $collector = app('debugbar')->getCollector('toon');
+        if ($collector) {
+            $collector->addEncode($data, $toon, $duration);
+        }
+    }
+
+    /**
+     * Track decode operation in Debugbar.
+     */
+    protected function trackDecode(string $toon, array $result, float $duration): void
+    {
+        if (! $this->hasDebugbar()) {
+            return;
+        }
+
+        $collector = app('debugbar')->getCollector('toon');
+        if ($collector) {
+            $collector->addDecode($toon, $result, $duration);
+        }
+    }
+
+    /**
+     * Check if Debugbar is available.
+     */
+    protected function hasDebugbar(): bool
+    {
+        return class_exists(\Barryvdh\Debugbar\LaravelDebugbar::class) &&
+               app()->bound('debugbar') &&
+               app('debugbar')->hasCollector('toon');
+    }
+
+    /**
+     * Encode and format for console output with syntax highlighting.
+     */
+    public function console(array|string $data, ?OutputInterface $output = null): string
+    {
+        $toon = $this->encode($data);
+
+        return ToonStyler::colorize($toon, $output);
     }
 
     /**
