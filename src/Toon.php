@@ -809,7 +809,6 @@ class Toon
      *
      * @param  string  $filename  The filename for the download
      * @param  array|string|object  $data  The data to encode and download
-     * @return StreamedResponse
      */
     public function download(string $filename, array|string|object $data): StreamedResponse
     {

@@ -5,7 +5,6 @@ namespace DigitalCoreHub\Toon\Commands;
 use DigitalCoreHub\Toon\Facades\Toon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 
 class ToonStoreCommand extends Command
 {
@@ -70,4 +69,3 @@ class ToonStoreCommand extends Command
         }
     }
 }
-
