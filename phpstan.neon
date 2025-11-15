@@ -1,0 +1,9 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    excludePaths:
+        - tests
+        # Debugbar is an optional dependency, exclude ToonCollector from analysis
+        - src/Debug/ToonCollector.php
+

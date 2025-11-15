@@ -53,7 +53,8 @@ class ToonStyler
         }
 
         // Value line (contains commas, not keys)
-        if (str_contains($line, ',') && ! str_ends_with(trim($line), ';')) {
+        $trimmedLine = trim($line);
+        if (str_contains($line, ',') && ! str_ends_with($trimmedLine, ';')) {
             return self::colorizeValues($line, $output);
         }
 
