@@ -1,0 +1,39 @@
+{
+    "name": "digitalcorehub/laravel-toon",
+    "description": "A Laravel package that converts JSON to TOON format - a human-readable, ultra-minimal data format",
+    "keywords": ["laravel", "json", "toon", "format", "converter"],
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.3",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/console": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "DigitalCoreHub\\Toon\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DigitalCoreHub\\Toon\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DigitalCoreHub\\Toon\\ToonServiceProvider"
+            ],
+            "aliases": {
+                "Toon": "DigitalCoreHub\\Toon\\Facades\\Toon"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
+
