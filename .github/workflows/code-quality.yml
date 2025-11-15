@@ -64,7 +64,9 @@ jobs:
             git add .
             if ! git diff --staged --quiet; then
               git commit -m "Apply Pint code style fixes [skip ci]"
-              git push
+              BRANCH=${GITHUB_REF#refs/heads/}
+              git pull --rebase origin "$BRANCH" || exit 1
+              git push origin "$BRANCH"
             fi
           fi
 

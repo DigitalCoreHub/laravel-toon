@@ -48,5 +48,16 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add .
           git commit -m "Apply Pint code style fixes [skip ci]"
-          git push
+
+      - name: Pull latest changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          git pull --rebase origin "$BRANCH" || exit 1
+
+      - name: Push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          BRANCH=${GITHUB_REF#refs/heads/}
+          git push origin "$BRANCH"
 
