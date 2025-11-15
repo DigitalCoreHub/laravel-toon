@@ -92,7 +92,7 @@ class Toon
         }
 
         // If line contains comma but no semicolon, it might be malformed keys line
-        if (str_contains($line, ',') && !str_ends_with($line, ';')) {
+        if (str_contains($line, ',')) {
             throw new InvalidToonFormatException("Keys line must end with semicolon: {$line}");
         }
 
