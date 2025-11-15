@@ -14,12 +14,12 @@ class ToonServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__ . '/../config/toon.php',
+            __DIR__.'/../config/toon.php',
             'toon'
         );
 
         $this->app->singleton('toon', function ($app) {
-            return new Toon();
+            return new Toon;
         });
     }
 
@@ -30,7 +30,7 @@ class ToonServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../config/toon.php' => config_path('toon.php'),
+                __DIR__.'/../config/toon.php' => config_path('toon.php'),
             ], 'toon-config');
 
             $this->commands([
@@ -40,4 +40,3 @@ class ToonServiceProvider extends ServiceProvider
         }
     }
 }
-

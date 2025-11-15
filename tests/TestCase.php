@@ -24,4 +24,3 @@ class TestCase extends Orchestra
         // Setup any environment configuration if needed
     }
 }
-

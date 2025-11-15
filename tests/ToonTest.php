@@ -34,7 +34,7 @@ class ToonTest extends TestCase
                 'id' => 1,
                 'customer' => 'John Doe',
                 'rating' => 5,
-            ]
+            ],
         ];
 
         $result = Toon::encode($json);
@@ -182,4 +182,3 @@ class ToonTest extends TestCase
         $this->assertEquals($original, $decoded);
     }
 }
-

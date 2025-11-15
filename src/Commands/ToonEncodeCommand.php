@@ -31,8 +31,9 @@ class ToonEncodeCommand extends Command
         $outputPath = $this->argument('output');
 
         // Check if input file exists
-        if (!File::exists($inputPath)) {
+        if (! File::exists($inputPath)) {
             $this->error("Input file not found: {$inputPath}");
+
             return Command::FAILURE;
         }
 
@@ -43,7 +44,8 @@ class ToonEncodeCommand extends Command
             // Decode to validate JSON
             $jsonData = json_decode($jsonContent, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                $this->error('Invalid JSON in input file: ' . json_last_error_msg());
+                $this->error('Invalid JSON in input file: '.json_last_error_msg());
+
                 return Command::FAILURE;
             }
 
@@ -53,14 +55,14 @@ class ToonEncodeCommand extends Command
             // Save to output file
             File::put($outputPath, $toonContent);
 
-            $this->info("Successfully converted JSON to TOON format!");
+            $this->info('Successfully converted JSON to TOON format!');
             $this->info("Output saved to: {$outputPath}");
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('Error converting JSON to TOON: ' . $e->getMessage());
+            $this->error('Error converting JSON to TOON: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
 }
-

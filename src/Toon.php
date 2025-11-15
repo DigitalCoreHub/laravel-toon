@@ -8,9 +8,6 @@ class Toon
 {
     /**
      * Encode JSON data (array or JSON string) to TOON format.
-     *
-     * @param array|string $json
-     * @return string
      */
     public function encode(array|string $json): string
     {
@@ -29,8 +26,6 @@ class Toon
     /**
      * Decode TOON format string to PHP array.
      *
-     * @param string $toon
-     * @return array
      * @throws InvalidToonFormatException
      */
     public function decode(string $toon): array
@@ -54,22 +49,19 @@ class Toon
 
     /**
      * Split TOON string into lines, preserving structure.
-     *
-     * @param string $toon
-     * @return array
      */
     protected function splitToonLines(string $toon): array
     {
         $lines = preg_split('/\r?\n/', $toon);
-        return array_filter(array_map('trim', $lines), fn($line) => $line !== '');
+
+        return array_filter(array_map('trim', $lines), fn ($line) => $line !== '');
     }
 
     /**
      * Parse TOON lines starting from given index.
      *
-     * @param array $lines
-     * @param int $startIndex
      * @return array ['data' => mixed, 'nextIndex' => int]
+     *
      * @throws InvalidToonFormatException
      */
     protected function parseToon(array $lines, int $startIndex): array
@@ -83,7 +75,7 @@ class Toon
 
         // Check if it's an array block: name[count]{
         if (preg_match('/^(\w+)\[(\d+)\]\s*\{$/', $line, $matches)) {
-            return $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int)$matches[2]);
+            return $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int) $matches[2]);
         }
 
         // Check if it's a simple object: key1, key2, key3;
@@ -98,17 +90,13 @@ class Toon
 
         // Try to parse as a single value
         $value = $this->parseValue($line);
+
         return ['data' => $value, 'nextIndex' => $currentIndex + 1];
     }
 
     /**
      * Parse an array block: name[count]{ ... }
      *
-     * @param array $lines
-     * @param int $startIndex
-     * @param string $arrayName
-     * @param int $expectedCount
-     * @return array
      * @throws InvalidToonFormatException
      */
     protected function parseArrayBlock(array $lines, int $startIndex, string $arrayName, int $expectedCount): array
@@ -123,7 +111,7 @@ class Toon
 
         $keysLine = $lines[$currentIndex];
 
-        if (!str_ends_with($keysLine, ';')) {
+        if (! str_ends_with($keysLine, ';')) {
             // No keys line, parse as array of primitives or nested structures
             $bracketCount = 1;
             $items = [];
@@ -146,7 +134,7 @@ class Toon
                 // Parse item
                 if (preg_match('/^(\w+)\[(\d+)\]\s*\{$/', $line, $matches)) {
                     // Nested array block
-                    $nested = $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int)$matches[2]);
+                    $nested = $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int) $matches[2]);
                     $items[] = $nested['data'];
                     $currentIndex = $nested['nextIndex'];
                 } elseif (trim($line) !== '{' && trim($line) !== '}') {
@@ -190,10 +178,11 @@ class Toon
 
             // Check if it's a nested array block
             if (preg_match('/^(\w+)\[(\d+)\]\s*\{$/', $line, $matches)) {
-                $nested = $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int)$matches[2]);
+                $nested = $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int) $matches[2]);
                 // This is a value in the parent object, we need to handle it differently
                 // For now, skip nested blocks in value rows
                 $currentIndex = $nested['nextIndex'];
+
                 continue;
             }
 
@@ -202,8 +191,8 @@ class Toon
 
             if (count($values) !== count($keys)) {
                 throw new InvalidToonFormatException(
-                    "Mismatched key/value count in array block '{$arrayName}'. " .
-                    "Expected " . count($keys) . " values, got " . count($values)
+                    "Mismatched key/value count in array block '{$arrayName}'. ".
+                    'Expected '.count($keys).' values, got '.count($values)
                 );
             }
 
@@ -222,8 +211,8 @@ class Toon
 
         if (count($result) !== $expectedCount) {
             throw new InvalidToonFormatException(
-                "Array count mismatch in '{$arrayName}'. " .
-                "Expected {$expectedCount} items, got " . count($result)
+                "Array count mismatch in '{$arrayName}'. ".
+                "Expected {$expectedCount} items, got ".count($result)
             );
         }
 
@@ -233,9 +222,6 @@ class Toon
     /**
      * Parse an object: key1, key2, key3; followed by values.
      *
-     * @param array $lines
-     * @param int $startIndex
-     * @return array
      * @throws InvalidToonFormatException
      */
     protected function parseObject(array $lines, int $startIndex): array
@@ -254,10 +240,11 @@ class Toon
             if (preg_match('/^(\w+)\[(\d+)\]\s*\{$/', $line, $matches)) {
                 // This should match the current key
                 if ($matches[1] === $keys[$keyIndex]) {
-                    $nested = $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int)$matches[2]);
+                    $nested = $this->parseArrayBlock($lines, $currentIndex, $matches[1], (int) $matches[2]);
                     $result[$keys[$keyIndex]] = $nested['data'];
                     $currentIndex = $nested['nextIndex'];
                     $keyIndex++;
+
                     continue;
                 }
             }
@@ -300,8 +287,8 @@ class Toon
 
         if ($keyIndex < count($keys)) {
             throw new InvalidToonFormatException(
-                "Missing values for object keys. " .
-                "Expected " . count($keys) . " values, got " . $keyIndex
+                'Missing values for object keys. '.
+                'Expected '.count($keys).' values, got '.$keyIndex
             );
         }
 
@@ -311,19 +298,17 @@ class Toon
     /**
      * Parse keys line: "key1, key2, key3;"
      *
-     * @param string $line
-     * @return array
      * @throws InvalidToonFormatException
      */
     protected function parseKeysLine(string $line): array
     {
-        if (!str_ends_with($line, ';')) {
+        if (! str_ends_with($line, ';')) {
             throw new InvalidToonFormatException("Keys line must end with semicolon: {$line}");
         }
 
         $line = rtrim($line, ';');
         $keys = array_map('trim', explode(',', $line));
-        $keys = array_filter($keys, fn($key) => $key !== '');
+        $keys = array_filter($keys, fn ($key) => $key !== '');
 
         if (empty($keys)) {
             throw new InvalidToonFormatException('Empty keys line');
@@ -334,10 +319,6 @@ class Toon
 
     /**
      * Parse value row: "value1, value2, value3"
-     *
-     * @param string $line
-     * @param int $expectedCount
-     * @return array
      */
     protected function parseValueRow(string $line, int $expectedCount): array
     {
@@ -352,22 +333,26 @@ class Toon
             if ($escapeNext) {
                 $current .= $char;
                 $escapeNext = false;
+
                 continue;
             }
 
             if ($char === '\\') {
                 $escapeNext = true;
+
                 continue;
             }
 
             if ($char === '"') {
-                $inQuotes = !$inQuotes;
+                $inQuotes = ! $inQuotes;
+
                 continue;
             }
 
-            if ($char === ',' && !$inQuotes) {
+            if ($char === ',' && ! $inQuotes) {
                 $values[] = $this->parseValue(trim($current));
                 $current = '';
+
                 continue;
             }
 
@@ -383,9 +368,6 @@ class Toon
 
     /**
      * Parse a single value (string, number, boolean, null).
-     *
-     * @param string $value
-     * @return mixed
      */
     protected function parseValue(string $value): mixed
     {
@@ -406,7 +388,7 @@ class Toon
 
         // Number
         if (is_numeric($value)) {
-            return str_contains($value, '.') ? (float)$value : (int)$value;
+            return str_contains($value, '.') ? (float) $value : (int) $value;
         }
 
         // String (remove quotes if present)
@@ -420,10 +402,7 @@ class Toon
     /**
      * Encode a value to TOON format.
      *
-     * @param mixed $value
-     * @param int $indentLevel
-     * @param string|null $arrayKeyName Optional key name for arrays (when array is a value of an object key)
-     * @return string
+     * @param  string|null  $arrayKeyName  Optional key name for arrays (when array is a value of an object key)
      */
     protected function encodeValue(mixed $value, int $indentLevel = 0, ?string $arrayKeyName = null): string
     {
@@ -457,9 +436,6 @@ class Toon
 
     /**
      * Check if array is associative.
-     *
-     * @param array $array
-     * @return bool
      */
     protected function isAssociativeArray(array $array): bool
     {
@@ -472,10 +448,6 @@ class Toon
 
     /**
      * Encode an associative array (object) to TOON format.
-     *
-     * @param array $object
-     * @param int $indentLevel
-     * @return string
      */
     protected function encodeObject(array $object, int $indentLevel = 0): string
     {
@@ -484,13 +456,13 @@ class Toon
 
         // Get all keys in order
         $keys = array_keys($object);
-        $keysLine = implode(', ', $keys) . ';';
-        $lines[] = $indent . $keysLine;
+        $keysLine = implode(', ', $keys).';';
+        $lines[] = $indent.$keysLine;
 
         // Encode values - check if any value is an array that needs special handling
         $hasArrayValues = false;
         foreach ($keys as $key) {
-            if (is_array($object[$key]) && !$this->isAssociativeArray($object[$key])) {
+            if (is_array($object[$key]) && ! $this->isAssociativeArray($object[$key])) {
                 $hasArrayValues = true;
                 break;
             }
@@ -504,7 +476,7 @@ class Toon
 
             foreach ($keys as $key) {
                 $value = $object[$key];
-                if (is_array($value) && !$this->isAssociativeArray($value)) {
+                if (is_array($value) && ! $this->isAssociativeArray($value)) {
                     // Array value - encode with key name as separate block
                     $arrayLines = $this->encodeArray($value, $indentLevel, $key);
                     $valueLines[] = $arrayLines;
@@ -524,7 +496,7 @@ class Toon
                     $lines[] = $valueLine;
                 } else {
                     // It's a simple value
-                    $lines[] = $indent . $valueLine;
+                    $lines[] = $indent.$valueLine;
                 }
             }
         } else {
@@ -534,7 +506,7 @@ class Toon
                 $values[] = $this->encodeValue($object[$key], $indentLevel);
             }
             $valuesLine = implode(', ', $values);
-            $lines[] = $indent . $valuesLine;
+            $lines[] = $indent.$valuesLine;
         }
 
         return implode("\n", $lines);
@@ -543,10 +515,7 @@ class Toon
     /**
      * Encode an indexed array to TOON format.
      *
-     * @param array $array
-     * @param int $indentLevel
-     * @param string|null $arrayKeyName Optional key name for arrays (when array is a value of an object key)
-     * @return string
+     * @param  string|null  $arrayKeyName  Optional key name for arrays (when array is a value of an object key)
      */
     protected function encodeArray(array $array, int $indentLevel = 0, ?string $arrayKeyName = null): string
     {
@@ -556,14 +525,14 @@ class Toon
 
         // Array header with size indicator
         $arrayName = $arrayKeyName ?? 'array';
-        $lines[] = $indent . $arrayName . '[' . $count . ']{';
+        $lines[] = $indent.$arrayName.'['.$count.']{';
 
         // If array contains objects, extract keys from first object and show them on first line
-        if (!empty($array) && is_array($array[0]) && $this->isAssociativeArray($array[0])) {
+        if (! empty($array) && is_array($array[0]) && $this->isAssociativeArray($array[0])) {
             // Get keys from first object (assuming all objects have same structure)
             $firstObjectKeys = array_keys($array[0]);
-            $keysLine = implode(', ', $firstObjectKeys) . ';';
-            $lines[] = $indent . '  ' . $keysLine;
+            $keysLine = implode(', ', $firstObjectKeys).';';
+            $lines[] = $indent.'  '.$keysLine;
 
             // Encode each object's values on separate lines
             foreach ($array as $item) {
@@ -574,7 +543,7 @@ class Toon
                         $values[] = $this->encodeValue($value, $indentLevel);
                     }
                     $valuesLine = implode(', ', $values);
-                    $lines[] = $indent . '  ' . $valuesLine;
+                    $lines[] = $indent.'  '.$valuesLine;
                 }
             }
         } else {
@@ -593,21 +562,18 @@ class Toon
                     }
                 } else {
                     // Primitive value
-                    $lines[] = $indent . '  ' . $this->encodeValue($item, $indentLevel);
+                    $lines[] = $indent.'  '.$this->encodeValue($item, $indentLevel);
                 }
             }
         }
 
-        $lines[] = $indent . '}';
+        $lines[] = $indent.'}';
 
         return implode("\n", $lines);
     }
 
     /**
      * Escape string value if needed.
-     *
-     * @param string $value
-     * @return string
      */
     protected function escapeString(string $value): string
     {
@@ -616,10 +582,9 @@ class Toon
         // Commas, semicolons, braces, and brackets require quotes
         // Spaces alone don't require quotes in TOON format
         if (preg_match('/[,;{}\[\]]/', $value)) {
-            return '"' . addslashes($value) . '"';
+            return '"'.addslashes($value).'"';
         }
 
         return $value;
     }
 }
-
