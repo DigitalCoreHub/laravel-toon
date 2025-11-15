@@ -7,6 +7,49 @@ use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
 class Toon
 {
     /**
+     * Create a new builder instance for fluent interface.
+     */
+    public function fromJson(string $json): ToonBuilder
+    {
+        return (new ToonBuilder($this))->fromJson($json);
+    }
+
+    /**
+     * Create a new builder instance for fluent interface.
+     */
+    public function fromArray(array $array): ToonBuilder
+    {
+        return (new ToonBuilder($this))->fromArray($array);
+    }
+
+    /**
+     * Create a new builder instance for fluent interface.
+     */
+    public function fromToon(string $toon): ToonBuilder
+    {
+        return (new ToonBuilder($this))->fromToon($toon);
+    }
+
+    /**
+     * Get configuration value.
+     */
+    protected function config(string $key, mixed $default = null): mixed
+    {
+        if (function_exists('config')) {
+            return config("toon.{$key}", $default);
+        }
+
+        $configFile = __DIR__.'/../config/toon.php';
+        if (file_exists($configFile)) {
+            $config = require $configFile;
+
+            return $config[$key] ?? $default;
+        }
+
+        return $default;
+    }
+
+    /**
      * Encode JSON data (array or JSON string) to TOON format.
      */
     public function encode(array|string $json): string
@@ -85,7 +128,8 @@ class Toon
 
         // If line contains comma but no semicolon, it might be malformed keys line
         if (str_contains($line, ',')) {
-            throw new InvalidToonFormatException("Keys line must end with semicolon: {$line}");
+            $lineNumber = $startIndex + 1;
+            throw new InvalidToonFormatException("Missing semicolon in header block at line {$lineNumber}. Found: {$line}");
         }
 
         // Try to parse as a single value
@@ -148,14 +192,15 @@ class Toon
             }
 
             if ($bracketCount !== 0) {
-                throw new InvalidToonFormatException("Unclosed array block '{$arrayName}'");
+                throw new InvalidToonFormatException("Unclosed brackets in array block '{$arrayName}'. Expected closing '}' but reached end of content.");
             }
 
             return ['data' => $items, 'nextIndex' => $currentIndex + 1];
         }
 
         // Parse keys line
-        $keys = $this->parseKeysLine($keysLine);
+        $lineNumber = $currentIndex + 1;
+        $keys = $this->parseKeysLine($keysLine, $lineNumber);
         $currentIndex++;
 
         // Parse value rows
@@ -190,9 +235,9 @@ class Toon
             $values = $this->parseValueRow($line, count($keys));
 
             if (count($values) !== count($keys)) {
+                $lineNumber = $currentIndex + 1;
                 throw new InvalidToonFormatException(
-                    "Mismatched key/value count in array block '{$arrayName}'. ".
-                    'Expected '.count($keys).' values, got '.count($values)
+                    "Key count (".count($keys).") does not match value count (".count($values).") at line {$lineNumber} in array block '{$arrayName}'."
                 );
             }
 
@@ -227,7 +272,8 @@ class Toon
     protected function parseObject(array $lines, int $startIndex): array
     {
         $keysLine = $lines[$startIndex];
-        $keys = $this->parseKeysLine($keysLine);
+        $lineNumber = $startIndex + 1;
+        $keys = $this->parseKeysLine($keysLine, $lineNumber);
 
         $currentIndex = $startIndex + 1;
         $result = [];
@@ -286,9 +332,9 @@ class Toon
         }
 
         if ($keyIndex < count($keys)) {
+            $lineNumber = $currentIndex > 0 ? $currentIndex + 1 : $startIndex + 2;
             throw new InvalidToonFormatException(
-                'Missing values for object keys. '.
-                'Expected '.count($keys).' values, got '.$keyIndex
+                "Key count (".count($keys).") does not match value count ({$keyIndex}) at line {$lineNumber}."
             );
         }
 
@@ -300,10 +346,11 @@ class Toon
      *
      * @throws InvalidToonFormatException
      */
-    protected function parseKeysLine(string $line): array
+    protected function parseKeysLine(string $line, ?int $lineNumber = null): array
     {
         if (! str_ends_with($line, ';')) {
-            throw new InvalidToonFormatException("Keys line must end with semicolon: {$line}");
+            $lineInfo = $lineNumber ? " at line {$lineNumber}" : '';
+            throw new InvalidToonFormatException("Missing semicolon in header block{$lineInfo}. Found: {$line}");
         }
 
         $line = rtrim($line, ';');
@@ -451,12 +498,15 @@ class Toon
      */
     protected function encodeObject(array $object, int $indentLevel = 0): string
     {
-        $indent = str_repeat('  ', $indentLevel);
+        $indentSize = $this->config('indentation', 4);
+        $keySeparator = $this->config('key_separator', ', ');
+        $lineBreak = $this->config('line_break', PHP_EOL);
+        $indent = str_repeat(' ', $indentLevel * $indentSize);
         $lines = [];
 
         // Get all keys in order
         $keys = array_keys($object);
-        $keysLine = implode(', ', $keys).';';
+        $keysLine = implode($keySeparator, $keys).';';
         $lines[] = $indent.$keysLine;
 
         // Encode values - check if any value is an array that needs special handling
@@ -505,11 +555,11 @@ class Toon
             foreach ($keys as $key) {
                 $values[] = $this->encodeValue($object[$key], $indentLevel);
             }
-            $valuesLine = implode(', ', $values);
+            $valuesLine = implode($keySeparator, $values);
             $lines[] = $indent.$valuesLine;
         }
 
-        return implode("\n", $lines);
+        return implode($lineBreak, $lines);
     }
 
     /**
@@ -519,7 +569,10 @@ class Toon
      */
     protected function encodeArray(array $array, int $indentLevel = 0, ?string $arrayKeyName = null): string
     {
-        $indent = str_repeat('  ', $indentLevel);
+        $indentSize = $this->config('indentation', 4);
+        $keySeparator = $this->config('key_separator', ', ');
+        $lineBreak = $this->config('line_break', PHP_EOL);
+        $indent = str_repeat(' ', $indentLevel * $indentSize);
         $count = count($array);
         $lines = [];
 
@@ -531,8 +584,8 @@ class Toon
         if (! empty($array) && is_array($array[0]) && $this->isAssociativeArray($array[0])) {
             // Get keys from first object (assuming all objects have same structure)
             $firstObjectKeys = array_keys($array[0]);
-            $keysLine = implode(', ', $firstObjectKeys).';';
-            $lines[] = $indent.'  '.$keysLine;
+            $keysLine = implode($keySeparator, $firstObjectKeys).';';
+            $lines[] = $indent.str_repeat(' ', $indentSize).$keysLine;
 
             // Encode each object's values on separate lines
             foreach ($array as $item) {
@@ -542,8 +595,8 @@ class Toon
                         $value = $item[$key] ?? null;
                         $values[] = $this->encodeValue($value, $indentLevel);
                     }
-                    $valuesLine = implode(', ', $values);
-                    $lines[] = $indent.'  '.$valuesLine;
+                    $valuesLine = implode($keySeparator, $values);
+                    $lines[] = $indent.str_repeat(' ', $indentSize).$valuesLine;
                 }
             }
         } else {
@@ -562,14 +615,14 @@ class Toon
                     }
                 } else {
                     // Primitive value
-                    $lines[] = $indent.'  '.$this->encodeValue($item, $indentLevel);
+                    $lines[] = $indent.str_repeat(' ', $indentSize).$this->encodeValue($item, $indentLevel);
                 }
             }
         }
 
         $lines[] = $indent.'}';
 
-        return implode("\n", $lines);
+        return implode($lineBreak, $lines);
     }
 
     /**

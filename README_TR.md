@@ -2,7 +2,7 @@
 
 Standart JSON'u **TOON** formatına dönüştüren hafif bir Laravel paketi - insan tarafından okunabilir, ultra-minimal, satır tabanlı bir veri formatı.
 
-[![Son Sürüm](https://img.shields.io/badge/sürüm-0.2.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Son Sürüm](https://img.shields.io/badge/sürüm-0.3.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-kırmızı.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-mavi.svg)](https://php.net)
 
@@ -32,6 +32,20 @@ Paket otomatik olarak service provider ve facade'ını kaydedecektir.
 - Laravel 10.x, 11.x veya 12.x
 
 ## Kullanım
+
+### Helper Fonksiyonlar
+
+Paket, kolay erişim için global helper fonksiyonlar sağlar:
+
+```php
+// TOON'a kodla
+$toon = toon_encode(['id' => 1, 'name' => 'Test']);
+// veya
+$toon = toon_encode('{"id": 1, "name": "Test"}');
+
+// TOON'dan çöz
+$array = toon_decode("id, name;\n1, Test");
+```
 
 ### Facade Kullanımı
 
@@ -102,6 +116,23 @@ $json = [
 
 $toon = Toon::encode($json);
 ```
+
+### Fluent Interface
+
+Paket, akıcı builder-style API destekler:
+
+```php
+// JSON string'den
+$toon = Toon::fromJson('{"id": 1, "name": "Test"}')->encode();
+
+// Diziden
+$toon = Toon::fromArray(['id' => 1, 'name' => 'Test'])->encode();
+
+// TOON string'den
+$array = Toon::fromToon("id, name;\n1, Test")->decode();
+```
+
+Fluent interface özellikle method chaining ve okunabilirlik için kullanışlıdır.
 
 ### TOON'u Diziye Dönüştürme (Decode)
 
@@ -179,10 +210,20 @@ try {
 ```
 
 Yaygın hatalar:
-- Keys satırında eksik noktalı virgül
-- Eşleşmeyen anahtar/değer sayıları
-- Kapatılmamış parantezler `{` veya `}`
+- Keys satırında eksik noktalı virgül (satır numaraları ile)
+- Eşleşmeyen anahtar/değer sayıları (satır numaraları ile)
+- Kapatılmamış parantezler `{` veya `}` (açıklayıcı mesajlarla)
 - Geçersiz dizi blok formatları
+
+**Örnek Hata Mesajları:**
+
+```php
+// Önce: "Mismatched key/value count"
+// Sonra: "Key count (4) does not match value count (3) at line 5."
+
+// Önce: "Keys line must end with semicolon"
+// Sonra: "Missing semicolon in header block at line 2. Found: id, name, price"
+```
 
 ### Dependency Injection Kullanımı
 
@@ -307,13 +348,44 @@ Yayınlanan yapılandırma dosyası aşağıdaki seçenekleri içerir:
 return [
     /*
     |--------------------------------------------------------------------------
-    | Girinti Boyutu
+    | Girinti
     |--------------------------------------------------------------------------
     |
     | TOON çıktısında girinti için kullanılan boşluk sayısı.
     |
     */
-    'indent_size' => 2,
+    'indentation' => 4,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Anahtar Ayırıcı
+    |--------------------------------------------------------------------------
+    |
+    | TOON formatında anahtarlar arasında kullanılan ayırıcı.
+    |
+    */
+    'key_separator' => ', ',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Satır Sonu
+    |--------------------------------------------------------------------------
+    |
+    | TOON çıktısında kullanılan satır sonu karakteri.
+    |
+    */
+    'line_break' => PHP_EOL,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Strict Mode
+    |--------------------------------------------------------------------------
+    |
+    | Etkinleştirildiğinde, çözümleme herhangi bir formatlama sorununda exception fırlatır.
+    | Devre dışı bırakıldığında, daha esnek bir şekilde parse etmeye çalışır.
+    |
+    */
+    'strict_mode' => false,
 
     /*
     |--------------------------------------------------------------------------
@@ -416,12 +488,16 @@ reviews[2]{
 
 ## Sürüm
 
-Mevcut sürüm: **v0.2.0**
+Mevcut sürüm: **v0.3.0**
 
 Bu sürüm şunları içerir:
 - ✅ JSON → TOON kodlama
 - ✅ TOON → JSON çözümleme
 - ✅ CLI komutları (encode & decode)
+- ✅ Global helper fonksiyonlar (`toon_encode`, `toon_decode`)
+- ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)
+- ✅ Yapılandırılabilir formatlama (girinti, ayırıcılar, satır sonları)
+- ✅ Satır numaraları ile iyileştirilmiş exception mesajları
 - ✅ Facade ve DI desteği
 - ✅ Kapsamlı test kapsamı
 - ✅ Özel exception'larla hata yönetimi

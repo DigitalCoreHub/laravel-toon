@@ -2,7 +2,7 @@
 
 A lightweight Laravel package that converts standard JSON into **TOON** format - a human-readable, ultra-minimal, line-based data format.
 
-[![Latest Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Latest Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-red.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
 
@@ -33,6 +33,20 @@ The package will automatically register its service provider and facade.
 
 ## Usage
 
+### Helper Functions
+
+The package provides global helper functions for easy access:
+
+```php
+// Encode to TOON
+$toon = toon_encode(['id' => 1, 'name' => 'Test']);
+// or
+$toon = toon_encode('{"id": 1, "name": "Test"}');
+
+// Decode from TOON
+$array = toon_decode("id, name;\n1, Test");
+```
+
 ### Using the Facade
 
 ```php
@@ -50,6 +64,23 @@ $toon = Toon::encode($json);
 // id, name, price;
 // 1, Test Product, 99.99
 ```
+
+### Fluent Interface
+
+The package supports a fluent builder-style API:
+
+```php
+// From JSON string
+$toon = Toon::fromJson('{"id": 1, "name": "Test"}')->encode();
+
+// From array
+$toon = Toon::fromArray(['id' => 1, 'name' => 'Test'])->encode();
+
+// From TOON string
+$array = Toon::fromToon("id, name;\n1, Test")->decode();
+```
+
+The fluent interface is especially useful for method chaining and readability.
 
 ### Encode from JSON String
 
@@ -179,10 +210,20 @@ try {
 ```
 
 Common errors include:
-- Missing semicolons in keys line
-- Mismatched key/value counts
-- Unclosed brackets `{` or `}`
+- Missing semicolons in keys line (with line numbers)
+- Mismatched key/value counts (with line numbers)
+- Unclosed brackets `{` or `}` (with descriptive messages)
 - Invalid array block formats
+
+**Example Error Messages:**
+
+```php
+// Before: "Mismatched key/value count"
+// After: "Key count (4) does not match value count (3) at line 5."
+
+// Before: "Keys line must end with semicolon"
+// After: "Missing semicolon in header block at line 2. Found: id, name, price"
+```
 
 ### Using Dependency Injection
 
@@ -307,13 +348,44 @@ The published configuration file contains the following options:
 return [
     /*
     |--------------------------------------------------------------------------
-    | Indent Size
+    | Indentation
     |--------------------------------------------------------------------------
     |
     | The number of spaces used for indentation in the TOON output.
     |
     */
-    'indent_size' => 2,
+    'indentation' => 4,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Key Separator
+    |--------------------------------------------------------------------------
+    |
+    | The separator used between keys in the TOON format.
+    |
+    */
+    'key_separator' => ', ',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Line Break
+    |--------------------------------------------------------------------------
+    |
+    | The line break character used in the TOON output.
+    |
+    */
+    'line_break' => PHP_EOL,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Strict Mode
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, decoding will throw exceptions for any formatting issues.
+    | When disabled, it will attempt to parse more leniently.
+    |
+    */
+    'strict_mode' => false,
 
     /*
     |--------------------------------------------------------------------------
@@ -416,12 +488,16 @@ reviews[2]{
 
 ## Version
 
-Current version: **v0.2.0**
+Current version: **v0.3.0**
 
 This version includes:
 - ✅ JSON → TOON encoding
 - ✅ TOON → JSON decoding
 - ✅ CLI commands (encode & decode)
+- ✅ Global helper functions (`toon_encode`, `toon_decode`)
+- ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)
+- ✅ Configurable formatting (indentation, separators, line breaks)
+- ✅ Improved exception messages with line numbers
 - ✅ Facade and DI support
 - ✅ Comprehensive test coverage
 - ✅ Error handling with custom exceptions

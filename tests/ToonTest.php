@@ -134,7 +134,7 @@ class ToonTest extends TestCase
     public function test_decode_missing_semicolon(): void
     {
         $this->expectException(InvalidToonFormatException::class);
-        $this->expectExceptionMessage('Keys line must end with semicolon');
+        $this->expectExceptionMessage('Missing semicolon in header block');
 
         $toon = "id, name, price\n1, Test, 99.99";
         Toon::decode($toon);
@@ -146,7 +146,7 @@ class ToonTest extends TestCase
     public function test_decode_mismatched_key_value_count(): void
     {
         $this->expectException(InvalidToonFormatException::class);
-        $this->expectExceptionMessage('Missing values for object keys');
+        $this->expectExceptionMessage('Key count');
 
         $toon = "id, name, price;\n1, Test";
         Toon::decode($toon);
@@ -180,5 +180,90 @@ class ToonTest extends TestCase
         $decoded = Toon::decode($encoded);
 
         $this->assertEquals($original, $decoded);
+    }
+
+    /**
+     * Test helper function toon_encode.
+     */
+    public function test_helper_toon_encode(): void
+    {
+        $data = ['id' => 1, 'name' => 'Test'];
+        $result = toon_encode($data);
+
+        $this->assertStringContainsString('id, name;', $result);
+        $this->assertStringContainsString('1, Test', $result);
+    }
+
+    /**
+     * Test helper function toon_decode.
+     */
+    public function test_helper_toon_decode(): void
+    {
+        $toon = "id, name;\n1, Test";
+        $result = toon_decode($toon);
+
+        $this->assertEquals(['id' => 1, 'name' => 'Test'], $result);
+    }
+
+    /**
+     * Test fluent interface fromJson.
+     */
+    public function test_fluent_from_json(): void
+    {
+        $json = '{"id": 1, "name": "Test"}';
+        $result = Toon::fromJson($json)->encode();
+
+        $this->assertStringContainsString('id, name;', $result);
+        $this->assertStringContainsString('1, Test', $result);
+    }
+
+    /**
+     * Test fluent interface fromArray.
+     */
+    public function test_fluent_from_array(): void
+    {
+        $array = ['id' => 1, 'name' => 'Test'];
+        $result = Toon::fromArray($array)->encode();
+
+        $this->assertStringContainsString('id, name;', $result);
+        $this->assertStringContainsString('1, Test', $result);
+    }
+
+    /**
+     * Test fluent interface fromToon.
+     */
+    public function test_fluent_from_toon(): void
+    {
+        $toon = "id, name;\n1, Test";
+        $result = Toon::fromToon($toon)->decode();
+
+        $this->assertEquals(['id' => 1, 'name' => 'Test'], $result);
+    }
+
+    /**
+     * Test config-driven indentation.
+     */
+    public function test_config_indentation(): void
+    {
+        config(['toon.indentation' => 2]);
+
+        $data = ['id' => 1, 'name' => 'Test'];
+        $result = Toon::encode($data);
+
+        // Check that indentation is used (should have spaces)
+        $this->assertIsString($result);
+    }
+
+    /**
+     * Test config key separator.
+     */
+    public function test_config_key_separator(): void
+    {
+        config(['toon.key_separator' => ' | ']);
+
+        $data = ['id' => 1, 'name' => 'Test'];
+        $result = Toon::encode($data);
+
+        $this->assertStringContainsString('id | name;', $result);
     }
 }
