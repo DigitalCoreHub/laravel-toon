@@ -2,7 +2,7 @@
 
 A lightweight Laravel package that converts standard JSON into **TOON** format - a human-readable, ultra-minimal, line-based data format.
 
-[![Latest Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Latest Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-red.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
 
@@ -103,6 +103,87 @@ $json = [
 $toon = Toon::encode($json);
 ```
 
+### Decode TOON to Array
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+// Decode from TOON string
+$toon = "reviews[1]{
+  id, customer, rating, comment, verified;
+  101, Alex Rivera, 5, Excellent!, true
+}";
+
+$array = Toon::decode($toon);
+// Returns:
+// [
+//     [
+//         'id' => 101,
+//         'customer' => 'Alex Rivera',
+//         'rating' => 5,
+//         'comment' => 'Excellent!',
+//         'verified' => true
+//     ]
+// ]
+```
+
+### Decode Multiple Rows
+
+```php
+$toon = "reviews[2]{
+  id, customer, rating;
+  1, Alice, 5
+  2, Bob, 4
+}";
+
+$array = Toon::decode($toon);
+// Returns array with 2 review items
+```
+
+### Decode Nested Structures
+
+```php
+$toon = "product, reviews;
+Laptop
+reviews[2]{
+  id, customer, rating;
+  1, Alice, 5
+  2, Bob, 4
+}";
+
+$array = Toon::decode($toon);
+// Returns:
+// [
+//     'product' => 'Laptop',
+//     'reviews' => [
+//         ['id' => 1, 'customer' => 'Alice', 'rating' => 5],
+//         ['id' => 2, 'customer' => 'Bob', 'rating' => 4]
+//     ]
+// ]
+```
+
+### Error Handling
+
+The decode method throws `InvalidToonFormatException` for invalid TOON formats:
+
+```php
+use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
+use DigitalCoreHub\Toon\Facades\Toon;
+
+try {
+    $array = Toon::decode($toon);
+} catch (InvalidToonFormatException $e) {
+    // Handle invalid TOON format
+    echo "Error: " . $e->getMessage();
+}
+```
+
+Common errors include:
+- Missing semicolons in keys line
+- Mismatched key/value counts
+- Unclosed brackets `{` or `}`
+- Invalid array block formats
+
 ### Using Dependency Injection
 
 ```php
@@ -122,7 +203,9 @@ class ProductController extends Controller
 }
 ```
 
-## CLI Command
+## CLI Commands
+
+### Encode: JSON → TOON
 
 Convert JSON files to TOON format using the Artisan command:
 
@@ -140,6 +223,36 @@ php artisan toon:encode storage/data.json storage/data.toon
 # - Read JSON from input.json
 # - Convert to TOON format
 # - Save to output.toon
+```
+
+### Decode: TOON → JSON
+
+Convert TOON files to JSON format using the Artisan command:
+
+```bash
+php artisan toon:decode input.toon output.json
+```
+
+**Example:**
+
+```bash
+# Convert a TOON file
+php artisan toon:decode storage/data.toon storage/data.json
+
+# The command will:
+# - Read TOON from input.toon
+# - Convert to JSON format (pretty printed)
+# - Save to output.json
+# - Display meaningful errors on invalid input
+```
+
+**Error Handling:**
+
+If the TOON file has invalid format, the command will display an error message:
+
+```bash
+$ php artisan toon:decode invalid.toon output.json
+Invalid TOON format: Keys line must end with semicolon
 ```
 
 ## TOON Format Rules
@@ -303,15 +416,15 @@ reviews[2]{
 
 ## Version
 
-Current version: **v0.1.0**
+Current version: **v0.2.0**
 
 This version includes:
 - ✅ JSON → TOON encoding
-- ✅ CLI command support
+- ✅ TOON → JSON decoding
+- ✅ CLI commands (encode & decode)
 - ✅ Facade and DI support
-- ✅ Basic test coverage
-
-**Note:** TOON → JSON decoding will be available in a future version.
+- ✅ Comprehensive test coverage
+- ✅ Error handling with custom exceptions
 
 ## Contributing
 

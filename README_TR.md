@@ -2,7 +2,7 @@
 
 Standart JSON'u **TOON** formatına dönüştüren hafif bir Laravel paketi - insan tarafından okunabilir, ultra-minimal, satır tabanlı bir veri formatı.
 
-[![Son Sürüm](https://img.shields.io/badge/sürüm-0.1.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Son Sürüm](https://img.shields.io/badge/sürüm-0.2.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-kırmızı.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-mavi.svg)](https://php.net)
 
@@ -103,6 +103,87 @@ $json = [
 $toon = Toon::encode($json);
 ```
 
+### TOON'u Diziye Dönüştürme (Decode)
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+// TOON string'inden decode
+$toon = "reviews[1]{
+  id, customer, rating, comment, verified;
+  101, Alex Rivera, 5, Excellent!, true
+}";
+
+$array = Toon::decode($toon);
+// Döndürür:
+// [
+//     [
+//         'id' => 101,
+//         'customer' => 'Alex Rivera',
+//         'rating' => 5,
+//         'comment' => 'Excellent!',
+//         'verified' => true
+//     ]
+// ]
+```
+
+### Çoklu Satır Decode
+
+```php
+$toon = "reviews[2]{
+  id, customer, rating;
+  1, Ali, 5
+  2, Ayşe, 4
+}";
+
+$array = Toon::decode($toon);
+// 2 elemanlı dizi döndürür
+```
+
+### İç İçe Yapıları Decode Etme
+
+```php
+$toon = "product, reviews;
+Laptop
+reviews[2]{
+  id, customer, rating;
+  1, Ali, 5
+  2, Ayşe, 4
+}";
+
+$array = Toon::decode($toon);
+// Döndürür:
+// [
+//     'product' => 'Laptop',
+//     'reviews' => [
+//         ['id' => 1, 'customer' => 'Ali', 'rating' => 5],
+//         ['id' => 2, 'customer' => 'Ayşe', 'rating' => 4]
+//     ]
+// ]
+```
+
+### Hata Yönetimi
+
+Decode metodu geçersiz TOON formatları için `InvalidToonFormatException` fırlatır:
+
+```php
+use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
+use DigitalCoreHub\Toon\Facades\Toon;
+
+try {
+    $array = Toon::decode($toon);
+} catch (InvalidToonFormatException $e) {
+    // Geçersiz TOON formatını işle
+    echo "Hata: " . $e->getMessage();
+}
+```
+
+Yaygın hatalar:
+- Keys satırında eksik noktalı virgül
+- Eşleşmeyen anahtar/değer sayıları
+- Kapatılmamış parantezler `{` veya `}`
+- Geçersiz dizi blok formatları
+
 ### Dependency Injection Kullanımı
 
 ```php
@@ -122,7 +203,9 @@ class ProductController extends Controller
 }
 ```
 
-## CLI Komutu
+## CLI Komutları
+
+### Encode: JSON → TOON
 
 JSON dosyalarını TOON formatına dönüştürmek için Artisan komutunu kullanın:
 
@@ -140,6 +223,36 @@ php artisan toon:encode storage/data.json storage/data.toon
 # - input.json'dan JSON okur
 # - TOON formatına dönüştürür
 # - output.toon'a kaydeder
+```
+
+### Decode: TOON → JSON
+
+TOON dosyalarını JSON formatına dönüştürmek için Artisan komutunu kullanın:
+
+```bash
+php artisan toon:decode input.toon output.json
+```
+
+**Örnek:**
+
+```bash
+# Bir TOON dosyasını dönüştür
+php artisan toon:decode storage/data.toon storage/data.json
+
+# Komut şunları yapacak:
+# - input.toon'dan TOON okur
+# - JSON formatına dönüştürür (güzel yazdırılmış)
+# - output.json'a kaydeder
+# - Geçersiz girişte anlamlı hatalar gösterir
+```
+
+**Hata Yönetimi:**
+
+TOON dosyası geçersiz formatta ise, komut bir hata mesajı gösterecektir:
+
+```bash
+$ php artisan toon:decode invalid.toon output.json
+Invalid TOON format: Keys line must end with semicolon
 ```
 
 ## TOON Format Kuralları
@@ -303,15 +416,15 @@ reviews[2]{
 
 ## Sürüm
 
-Mevcut sürüm: **v0.1.0**
+Mevcut sürüm: **v0.2.0**
 
 Bu sürüm şunları içerir:
 - ✅ JSON → TOON kodlama
-- ✅ CLI komut desteği
+- ✅ TOON → JSON çözümleme
+- ✅ CLI komutları (encode & decode)
 - ✅ Facade ve DI desteği
-- ✅ Temel test kapsamı
-
-**Not:** TOON → JSON çözümleme gelecekteki bir sürümde kullanılabilir olacak.
+- ✅ Kapsamlı test kapsamı
+- ✅ Özel exception'larla hata yönetimi
 
 ## Katkıda Bulunma
 

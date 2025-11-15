@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static string encode(array|string $json)
+ * @method static array decode(string $toon)
  *
  * @see \DigitalCoreHub\Toon\Toon
  */

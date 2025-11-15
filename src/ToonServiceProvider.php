@@ -2,6 +2,7 @@
 
 namespace DigitalCoreHub\Toon;
 
+use DigitalCoreHub\Toon\Commands\ToonDecodeCommand;
 use DigitalCoreHub\Toon\Commands\ToonEncodeCommand;
 use Illuminate\Support\ServiceProvider;
 
@@ -34,6 +35,7 @@ class ToonServiceProvider extends ServiceProvider
 
             $this->commands([
                 ToonEncodeCommand::class,
+                ToonDecodeCommand::class,
             ]);
         }
     }
