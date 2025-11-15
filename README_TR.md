@@ -2,7 +2,7 @@
 
 Standart JSON'u **TOON** formatına dönüştüren hafif bir Laravel paketi - insan tarafından okunabilir, ultra-minimal, satır tabanlı bir veri formatı.
 
-[![Son Sürüm](https://img.shields.io/badge/sürüm-0.5.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Son Sürüm](https://img.shields.io/badge/sürüm-0.6.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-kırmızı.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-mavi.svg)](https://php.net)
 
@@ -544,6 +544,135 @@ Benchmark komutu şunları gösterir:
 - İşlenen toplam satır ve anahtar
 - Dosya boyutu karşılaştırması (TOON vs JSON)
 
+### Store: TOON'u Laravel Storage'a Kaydet
+
+Laravel Storage kullanarak TOON dosyalarını kaydedin:
+
+```bash
+php artisan toon:store input.json output.toon --disk=public
+```
+
+**Seçenekler:**
+- `--disk`: Kullanılacak storage disk'i (varsayılan: config'den `toon.storage.default_disk`)
+
+**Örnek:**
+```bash
+# Varsayılan disk'e kaydet (local)
+php artisan toon:store storage/data.json users.toon
+
+# Public disk'e kaydet
+php artisan toon:store storage/data.json users.toon --disk=public
+
+# Komut şunları yapacak:
+# - input.json'dan JSON okur
+# - TOON formatına dönüştürür
+# - Laravel Storage üzerinden kaydeder
+# - Kaydedilen dosya yolunu yazdırır
+```
+
+## Dosya Depolama ve İndirme
+
+### TOON Dosyalarını Kaydetme
+
+TOON verilerini Laravel Storage'a kaydedin:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+$data = ['id' => 1, 'name' => 'Test'];
+
+// Varsayılan disk'e kaydet (config'den)
+$path = Toon::store('my-file', $data);
+// Döner: "toon/my-file.toon"
+
+// Belirli bir disk'e kaydet
+$path = Toon::store('my-file', $data, 'public');
+// Döner: "toon/my-file.toon"
+
+// İç içe yol ile kaydet (dizin otomatik oluşturulur)
+$path = Toon::store('exports/users', $data, 'local');
+// Döner: "toon/exports/users.toon"
+```
+
+**Özellikler:**
+- Eksikse otomatik olarak `.toon` uzantısı ekler
+- Dizinleri otomatik oluşturur
+- Config'den varsayılan dizini kullanır (`toon.storage.default_directory`)
+- Kaydedilen dosyanın tam yolunu döndürür
+
+**Yapılandırma:**
+```php
+// config/toon.php
+'storage' => [
+    'default_disk' => 'local',
+    'default_directory' => 'toon',
+],
+```
+
+### TOON Dosyalarını İndirme
+
+TOON verilerini dosya yanıtı olarak indirin:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+// Bir controller'da
+Route::get('/export/users', function () {
+    $users = User::all()->toArray();
+    return Toon::download('users', $users);
+});
+
+// Özel dosya adı ile
+return Toon::download('export-2024-01-01', $data);
+```
+
+**Yanıt Başlıkları:**
+- `Content-Type: text/toon`
+- `Content-Disposition: attachment; filename="users.toon"`
+
+Download metodu:
+- Eksikse otomatik olarak `.toon` uzantısı ekler
+- Yanıtı verimli bir şekilde akışa alır
+- Dosya indirme için uygun başlıkları ayarlar
+
+### API Yanıt Makrosu
+
+API yanıtlarında TOON formatı döndürün:
+
+```php
+use Illuminate\Support\Facades\Response;
+
+// Bir controller'da
+public function index()
+{
+    $data = Product::all()->toArray();
+    return response()->toon($data);
+}
+```
+
+**Yanıt Başlıkları:**
+- `Content-Type: text/toon`
+
+**Örnek Route:**
+```php
+// routes/api.php
+Route::get('/products', function () {
+    return response()->toon(Product::all()->toArray());
+});
+```
+
+`response()->toon()` makrosu:
+- Veriyi TOON formatına kodlar
+- `Content-Type: text/toon` başlığını ayarlar
+- Standart Laravel yanıtı döndürür
+
+**Dosya Yapısı:**
+Dosyaları kaydettikten sonra şu konumlarda bulunacaklar:
+```
+storage/app/toon/*.toon          (varsayılan disk: local)
+storage/app/public/toon/*.toon     (disk: public)
+```
+
 ## TOON Format Kuralları
 
 TOON formatı şu kuralları takip eder:
@@ -655,6 +784,19 @@ return [
     |
     */
     'compact' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storage Yapılandırması
+    |--------------------------------------------------------------------------
+    |
+    | Laravel Storage kullanarak TOON dosyalarını kaydetmek için yapılandırma.
+    |
+    */
+    'storage' => [
+        'default_disk' => 'local',
+        'default_directory' => 'toon',
+    ],
 ];
 ```
 
@@ -747,17 +889,21 @@ reviews[2]{
 
 ## Sürüm
 
-Mevcut sürüm: **v0.5.0**
+Mevcut sürüm: **v0.6.0**
 
 Bu sürüm şunları içerir:
 - ✅ JSON → TOON kodlama
 - ✅ TOON → JSON çözümleme
-- ✅ **Streaming encoder** büyük dosyalar için (`encodeStream`)
-- ✅ **Lazy encoder** satır satır çıktı için (`lazy`)
-- ✅ **Benchmark komutu** (`php artisan toon:bench`)
-- ✅ **Compact mode** daha küçük, daha hızlı çıktı için
-- ✅ **Deneysel streaming decode** (`decodeStream`)
-- ✅ CLI komutları (encode & decode) renkli önizleme ile
+- ✅ **Dosya Depolama** - Laravel Storage kullanarak TOON dosyalarını kaydetme (`store`)
+- ✅ **İndirme Desteği** - TOON dosyalarını HTTP yanıtları olarak indirme (`download`)
+- ✅ **API Yanıt Makrosu** - API endpoint'leri için `response()->toon()`
+- ✅ **Store Komutu** - CLI dosya depolama için `php artisan toon:store`
+- ✅ Streaming encoder büyük dosyalar için (`encodeStream`)
+- ✅ Lazy encoder satır satır çıktı için (`lazy`)
+- ✅ Benchmark komutu (`php artisan toon:bench`)
+- ✅ Compact mode daha küçük, daha hızlı çıktı için
+- ✅ Deneysel streaming decode (`decodeStream`)
+- ✅ CLI komutları (encode, decode, store) renkli önizleme ile
 - ✅ Global helper fonksiyonlar (`toon_encode`, `toon_decode`)
 - ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)
 - ✅ Blade directive `@toon()` kolay şablon entegrasyonu için

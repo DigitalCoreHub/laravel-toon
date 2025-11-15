@@ -2,7 +2,7 @@
 
 A lightweight Laravel package that converts standard JSON into **TOON** format - a human-readable, ultra-minimal, line-based data format.
 
-[![Latest Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Latest Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-red.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
 
@@ -544,6 +544,135 @@ The benchmark command displays:
 - Total rows and keys processed
 - File size comparison (TOON vs JSON)
 
+### Store: Save TOON to Laravel Storage
+
+Save TOON files using Laravel Storage:
+
+```bash
+php artisan toon:store input.json output.toon --disk=public
+```
+
+**Options:**
+- `--disk`: The storage disk to use (default: from config `toon.storage.default_disk`)
+
+**Example:**
+```bash
+# Store to default disk (local)
+php artisan toon:store storage/data.json users.toon
+
+# Store to public disk
+php artisan toon:store storage/data.json users.toon --disk=public
+
+# The command will:
+# - Read JSON from input.json
+# - Convert to TOON format
+# - Store via Laravel Storage
+# - Print saved file path
+```
+
+## File Storage & Download
+
+### Storing TOON Files
+
+Save TOON data to Laravel Storage:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+$data = ['id' => 1, 'name' => 'Test'];
+
+// Store to default disk (from config)
+$path = Toon::store('my-file', $data);
+// Returns: "toon/my-file.toon"
+
+// Store to specific disk
+$path = Toon::store('my-file', $data, 'public');
+// Returns: "toon/my-file.toon"
+
+// Store with nested path (directory created automatically)
+$path = Toon::store('exports/users', $data, 'local');
+// Returns: "toon/exports/users.toon"
+```
+
+**Features:**
+- Automatically adds `.toon` extension if missing
+- Creates directories automatically
+- Uses default directory from config (`toon.storage.default_directory`)
+- Returns full saved file path
+
+**Configuration:**
+```php
+// config/toon.php
+'storage' => [
+    'default_disk' => 'local',
+    'default_directory' => 'toon',
+],
+```
+
+### Downloading TOON Files
+
+Download TOON data as a file response:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+// In a controller
+Route::get('/export/users', function () {
+    $users = User::all()->toArray();
+    return Toon::download('users', $users);
+});
+
+// With custom filename
+return Toon::download('export-2024-01-01', $data);
+```
+
+**Response Headers:**
+- `Content-Type: text/toon`
+- `Content-Disposition: attachment; filename="users.toon"`
+
+The download method:
+- Automatically adds `.toon` extension if missing
+- Streams response efficiently
+- Sets proper headers for file download
+
+### API Response Macro
+
+Return TOON format in API responses:
+
+```php
+use Illuminate\Support\Facades\Response;
+
+// In a controller
+public function index()
+{
+    $data = Product::all()->toArray();
+    return response()->toon($data);
+}
+```
+
+**Response Headers:**
+- `Content-Type: text/toon`
+
+**Example Route:**
+```php
+// routes/api.php
+Route::get('/products', function () {
+    return response()->toon(Product::all()->toArray());
+});
+```
+
+The `response()->toon()` macro:
+- Encodes data to TOON format
+- Sets `Content-Type: text/toon` header
+- Returns standard Laravel response
+
+**File Structure:**
+After storing files, they will be located at:
+```
+storage/app/toon/*.toon          (default disk: local)
+storage/app/public/toon/*.toon     (disk: public)
+```
+
 ## TOON Format Rules
 
 The TOON format follows these rules:
@@ -644,6 +773,19 @@ return [
     |
     */
     'preserve_order' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storage Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for storing TOON files using Laravel Storage.
+    |
+    */
+    'storage' => [
+        'default_disk' => 'local',
+        'default_directory' => 'toon',
+    ],
 ];
 ```
 
@@ -737,17 +879,21 @@ reviews[2]{
 
 ## Version
 
-Current version: **v0.5.0**
+Current version: **v0.6.0**
 
 This version includes:
 - ✅ JSON → TOON encoding
 - ✅ TOON → JSON decoding
-- ✅ **Streaming encoder** for large files (`encodeStream`)
-- ✅ **Lazy encoder** for line-by-line output (`lazy`)
-- ✅ **Benchmark command** (`php artisan toon:bench`)
-- ✅ **Compact mode** for smaller, faster output
-- ✅ **Experimental streaming decode** (`decodeStream`)
-- ✅ CLI commands (encode & decode) with colored preview
+- ✅ **File Storage** - Save TOON files using Laravel Storage (`store`)
+- ✅ **Download Support** - Download TOON files as HTTP responses (`download`)
+- ✅ **API Response Macro** - `response()->toon()` for API endpoints
+- ✅ **Store Command** - `php artisan toon:store` for CLI file storage
+- ✅ Streaming encoder for large files (`encodeStream`)
+- ✅ Lazy encoder for line-by-line output (`lazy`)
+- ✅ Benchmark command (`php artisan toon:bench`)
+- ✅ Compact mode for smaller, faster output
+- ✅ Experimental streaming decode (`decodeStream`)
+- ✅ CLI commands (encode, decode, store) with colored preview
 - ✅ Global helper functions (`toon_encode`, `toon_decode`)
 - ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)
 - ✅ Blade directive `@toon()` for easy template integration

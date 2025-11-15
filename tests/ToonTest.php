@@ -5,6 +5,7 @@ namespace DigitalCoreHub\Toon\Tests;
 use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
 use DigitalCoreHub\Toon\Facades\Toon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ToonTest extends TestCase
 {
@@ -418,5 +419,316 @@ class ToonTest extends TestCase
         } finally {
             @unlink($testFile);
         }
+    }
+
+    /**
+     * Test store() method with Laravel Storage.
+     */
+    public function test_store(): void
+    {
+        Storage::fake('local');
+
+        $data = ['name' => 'Test', 'value' => 123];
+        $path = Toon::store('test-file', $data, 'local');
+
+        $this->assertStringEndsWith('.toon', $path);
+        Storage::disk('local')->assertExists($path);
+
+        $content = Storage::disk('local')->get($path);
+        $this->assertNotEmpty($content);
+        $this->assertStringContainsString('name', $content);
+    }
+
+    /**
+     * Test store() with default directory.
+     */
+    public function test_store_with_default_directory(): void
+    {
+        Storage::fake('local');
+
+        $data = ['test' => 'data'];
+        $path = Toon::store('my-file', $data, 'local');
+
+        $this->assertStringContainsString('toon', $path);
+        Storage::disk('local')->assertExists($path);
+    }
+
+    /**
+     * Test store() with custom disk.
+     */
+    public function test_store_with_custom_disk(): void
+    {
+        Storage::fake('public');
+
+        $data = ['key' => 'value'];
+        $path = Toon::store('custom-file', $data, 'public');
+
+        Storage::disk('public')->assertExists($path);
+    }
+
+    /**
+     * Test store() creates directory automatically.
+     */
+    public function test_store_creates_directory(): void
+    {
+        Storage::fake('local');
+
+        $data = ['test' => 'data'];
+        $path = Toon::store('subdir/nested/file', $data, 'local');
+
+        Storage::disk('local')->assertExists($path);
+    }
+
+    /**
+     * Test download() method returns StreamedResponse.
+     */
+    public function test_download(): void
+    {
+        $data = ['name' => 'Test', 'id' => 1];
+        $response = Toon::download('test-file', $data);
+
+        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\StreamedResponse::class, $response);
+        $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('test-file.toon', $response->headers->get('Content-Disposition'));
+    }
+
+    /**
+     * Test download() adds .toon extension if missing.
+     */
+    public function test_download_adds_extension(): void
+    {
+        $data = ['test' => 'data'];
+        $response = Toon::download('myfile', $data);
+
+        $this->assertStringContainsString('myfile.toon', $response->headers->get('Content-Disposition'));
+    }
+
+    /**
+     * Test Response::toon() macro.
+     */
+    public function test_response_toon_macro(): void
+    {
+        $data = ['name' => 'Test', 'value' => 123];
+        $response = response()->toon($data);
+
+        $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
+        $this->assertNotEmpty($response->getContent());
+        $this->assertStringContainsString('name', $response->getContent());
+    }
+
+    /**
+     * Test Response::toon() macro with array.
+     */
+    public function test_response_toon_macro_with_array(): void
+    {
+        $data = [
+            ['id' => 1, 'name' => 'First'],
+            ['id' => 2, 'name' => 'Second'],
+        ];
+
+        $response = response()->toon($data);
+        $content = $response->getContent();
+
+        $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('id', $content);
+        $this->assertStringContainsString('name', $content);
+    }
+
+    /**
+     * Test store() with JSON string input.
+     */
+    public function test_store_with_json_string(): void
+    {
+        Storage::fake('local');
+
+        $jsonString = '{"id": 1, "name": "Test"}';
+        $path = Toon::store('json-file', $jsonString, 'local');
+
+        $this->assertStringEndsWith('.toon', $path);
+        Storage::disk('local')->assertExists($path);
+
+        $content = Storage::disk('local')->get($path);
+        $this->assertStringContainsString('id', $content);
+        $this->assertStringContainsString('name', $content);
+    }
+
+    /**
+     * Test store() with object input.
+     */
+    public function test_store_with_object(): void
+    {
+        Storage::fake('local');
+
+        $object = (object) ['id' => 1, 'name' => 'Test'];
+        $path = Toon::store('object-file', $object, 'local');
+
+        $this->assertStringEndsWith('.toon', $path);
+        Storage::disk('local')->assertExists($path);
+    }
+
+    /**
+     * Test store() with null disk (uses config default).
+     */
+    public function test_store_with_null_disk(): void
+    {
+        Storage::fake('local');
+
+        // Set config default disk
+        config(['toon.storage.default_disk' => 'local']);
+
+        $data = ['test' => 'data'];
+        $path = Toon::store('config-file', $data, null);
+
+        $this->assertStringEndsWith('.toon', $path);
+        Storage::disk('local')->assertExists($path);
+    }
+
+    /**
+     * Test store() with absolute path (starts with /).
+     */
+    public function test_store_with_absolute_path(): void
+    {
+        Storage::fake('local');
+
+        $data = ['test' => 'data'];
+        $path = Toon::store('/absolute/path/file', $data, 'local');
+
+        // Absolute paths should not get default directory prepended
+        $this->assertStringStartsWith('/', $path);
+        $this->assertStringEndsWith('.toon', $path);
+        Storage::disk('local')->assertExists($path);
+    }
+
+    /**
+     * Test store() without .toon extension (should add automatically).
+     */
+    public function test_store_adds_extension_automatically(): void
+    {
+        Storage::fake('local');
+
+        $data = ['test' => 'data'];
+        $path = Toon::store('file-without-extension', $data, 'local');
+
+        $this->assertStringEndsWith('.toon', $path);
+        Storage::disk('local')->assertExists($path);
+    }
+
+    /**
+     * Test download() with JSON string input.
+     */
+    public function test_download_with_json_string(): void
+    {
+        $jsonString = '{"id": 1, "name": "Test"}';
+        $response = Toon::download('json-download', $jsonString);
+
+        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\StreamedResponse::class, $response);
+        $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
+
+        // Capture the streamed content
+        ob_start();
+        $response->sendContent();
+        $content = ob_get_clean();
+
+        $this->assertStringContainsString('id', $content);
+        $this->assertStringContainsString('name', $content);
+    }
+
+    /**
+     * Test download() with object input.
+     */
+    public function test_download_with_object(): void
+    {
+        $object = (object) ['id' => 1, 'name' => 'Test'];
+        $response = Toon::download('object-download', $object);
+
+        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\StreamedResponse::class, $response);
+        $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
+    }
+
+    /**
+     * Test download() response content correctness.
+     */
+    public function test_download_response_content(): void
+    {
+        $data = ['id' => 1, 'name' => 'Test Product', 'price' => 99.99];
+        $response = Toon::download('product', $data);
+
+        // Capture the streamed content
+        ob_start();
+        $response->sendContent();
+        $content = ob_get_clean();
+
+        // Verify content is valid TOON format
+        $this->assertStringContainsString('id', $content);
+        $this->assertStringContainsString('name', $content);
+        $this->assertStringContainsString('price', $content);
+        $this->assertStringContainsString('1', $content);
+        $this->assertStringContainsString('Test Product', $content);
+        $this->assertStringContainsString('99.99', $content);
+    }
+
+    /**
+     * Test Response::toon() macro with JSON string.
+     */
+    public function test_response_toon_macro_with_json_string(): void
+    {
+        $jsonString = '{"id": 1, "name": "Test"}';
+        $response = response()->toon($jsonString);
+
+        $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
+        $this->assertNotEmpty($response->getContent());
+        $this->assertStringContainsString('id', $response->getContent());
+    }
+
+    /**
+     * Test Response::toon() macro with object.
+     */
+    public function test_response_toon_macro_with_object(): void
+    {
+        $object = (object) ['id' => 1, 'name' => 'Test'];
+        $response = response()->toon($object);
+
+        $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
+        $this->assertNotEmpty($response->getContent());
+        $this->assertStringContainsString('id', $response->getContent());
+    }
+
+    /**
+     * Test store() returns correct path format.
+     */
+    public function test_store_returns_correct_path(): void
+    {
+        Storage::fake('local');
+
+        $data = ['test' => 'data'];
+        $path = Toon::store('my-file', $data, 'local');
+
+        // Should include default directory
+        $this->assertStringContainsString('toon', $path);
+        $this->assertStringContainsString('my-file', $path);
+        $this->assertStringEndsWith('.toon', $path);
+    }
+
+    /**
+     * Test store() with nested data structure.
+     */
+    public function test_store_with_nested_data(): void
+    {
+        Storage::fake('local');
+
+        $data = [
+            'product' => 'Laptop',
+            'reviews' => [
+                ['id' => 1, 'customer' => 'Alice', 'rating' => 5],
+                ['id' => 2, 'customer' => 'Bob', 'rating' => 4],
+            ],
+        ];
+
+        $path = Toon::store('nested-data', $data, 'local');
+        $content = Storage::disk('local')->get($path);
+
+        $this->assertStringContainsString('product', $content);
+        $this->assertStringContainsString('reviews', $content);
+        $this->assertStringContainsString('Laptop', $content);
     }
 }

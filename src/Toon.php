@@ -6,7 +6,9 @@ use DigitalCoreHub\Toon\Console\ToonStyler;
 use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
 use DigitalCoreHub\Toon\Lazy\LazyEncoder;
 use DigitalCoreHub\Toon\Streaming\StreamEncoder;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Toon
 {
@@ -756,5 +758,78 @@ class Toon
         }
 
         return $value;
+    }
+
+    /**
+     * Store TOON data to Laravel Storage.
+     *
+     * @param  string  $path  The file path (relative to disk root or directory)
+     * @param  array|string|object  $data  The data to encode and store
+     * @param  string|null  $disk  The storage disk name (null uses default_disk from config)
+     * @return string The full path where the file was saved
+     */
+    public function store(string $path, array|string|object $data, ?string $disk = null): string
+    {
+        // Get disk from config if not provided
+        $disk = $disk ?? $this->config('storage.default_disk', 'local');
+        $defaultDirectory = $this->config('storage.default_directory', 'toon');
+
+        // Ensure path has .toon extension if not present
+        if (! str_ends_with($path, '.toon')) {
+            $path .= '.toon';
+        }
+
+        // Prepend default directory if path doesn't start with /
+        if (! str_starts_with($path, '/') && $defaultDirectory) {
+            $path = rtrim($defaultDirectory, '/').'/'.ltrim($path, '/');
+        }
+
+        // Convert object to array if needed
+        if (is_object($data)) {
+            $data = (array) $data;
+        }
+
+        // Encode data to TOON
+        $toonContent = $this->encode($data);
+
+        // Ensure directory exists
+        $directory = dirname($path);
+        if ($directory !== '.' && $directory !== '/') {
+            Storage::disk($disk)->makeDirectory($directory);
+        }
+
+        // Store the file
+        Storage::disk($disk)->put($path, $toonContent);
+
+        return $path;
+    }
+
+    /**
+     * Download TOON data as a file response.
+     *
+     * @param  string  $filename  The filename for the download
+     * @param  array|string|object  $data  The data to encode and download
+     * @return StreamedResponse
+     */
+    public function download(string $filename, array|string|object $data): StreamedResponse
+    {
+        // Ensure filename has .toon extension
+        if (! str_ends_with($filename, '.toon')) {
+            $filename .= '.toon';
+        }
+
+        // Convert object to array if needed
+        if (is_object($data)) {
+            $data = (array) $data;
+        }
+
+        // Encode data to TOON
+        $toonContent = $this->encode($data);
+
+        return response()->streamDownload(function () use ($toonContent) {
+            echo $toonContent;
+        }, $filename, [
+            'Content-Type' => 'text/toon',
+        ]);
     }
 }

@@ -82,4 +82,17 @@ return [
     |
     */
     'compact' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storage Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for storing TOON files using Laravel Storage.
+    |
+    */
+    'storage' => [
+        'default_disk' => 'local',
+        'default_directory' => 'toon',
+    ],
 ];

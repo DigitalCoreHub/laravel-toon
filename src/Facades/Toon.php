@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static \DigitalCoreHub\Toon\ToonBuilder fromJson(string $json)
  * @method static \DigitalCoreHub\Toon\ToonBuilder fromArray(array $array)
  * @method static \DigitalCoreHub\Toon\ToonBuilder fromToon(string $toon)
+ * @method static string store(string $path, array|string|object $data, ?string $disk = null)
+ * @method static \Symfony\Component\HttpFoundation\StreamedResponse download(string $filename, array|string|object $data)
  *
  * @see \DigitalCoreHub\Toon\Toon
  */

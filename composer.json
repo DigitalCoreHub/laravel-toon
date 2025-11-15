@@ -1,7 +1,7 @@
 {
     "name": "digitalcorehub/laravel-toon",
     "description": "A friendly JSON transformer for Laravel — Convert JSON ↔ TOON, an ultra-minimal, line-based data format.",
-    "version": "0.5",
+    "version": "0.6",
     "keywords": [
         "laravel",
         "json",

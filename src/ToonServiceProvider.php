@@ -6,9 +6,11 @@ use DigitalCoreHub\Toon\Blade\ToonDirective;
 use DigitalCoreHub\Toon\Commands\ToonBenchCommand;
 use DigitalCoreHub\Toon\Commands\ToonDecodeCommand;
 use DigitalCoreHub\Toon\Commands\ToonEncodeCommand;
+use DigitalCoreHub\Toon\Commands\ToonStoreCommand;
 use DigitalCoreHub\Toon\Debug\ToonCollector;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\ServiceProvider;
 
 class ToonServiceProvider extends ServiceProvider
@@ -44,6 +46,9 @@ class ToonServiceProvider extends ServiceProvider
         // Register Log macro (must be in boot() when LogManager is ready)
         $this->registerLogMacro();
 
+        // Register Response macro
+        $this->registerResponseMacro();
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../config/toon.php' => config_path('toon.php'),
@@ -53,6 +58,7 @@ class ToonServiceProvider extends ServiceProvider
                 ToonEncodeCommand::class,
                 ToonDecodeCommand::class,
                 ToonBenchCommand::class,
+                ToonStoreCommand::class,
             ]);
         }
     }
@@ -121,6 +127,25 @@ class ToonServiceProvider extends ServiceProvider
                     return Log::{$level}($message);
                 });
             }
+        }
+    }
+
+    /**
+     * Register Response macro for TOON API responses.
+     */
+    protected function registerResponseMacro(): void
+    {
+        if (! Response::hasMacro('toon')) {
+            Response::macro('toon', function ($data) {
+                // Convert object to array if needed
+                if (is_object($data)) {
+                    $data = (array) $data;
+                }
+
+                $toon = app('toon')->encode($data);
+
+                return response($toon)->header('Content-Type', 'text/toon');
+            });
         }
     }
 }
