@@ -56,6 +56,7 @@ class StreamEncoder
         // Check if it's a Laravel Storage disk path
         if (str_contains($path, ':')) {
             [$disk, $filePath] = explode(':', $path, 2);
+
             return Storage::disk($disk)->get($filePath);
         }
 
@@ -144,4 +145,3 @@ class StreamEncoder
         return null;
     }
 }
-
