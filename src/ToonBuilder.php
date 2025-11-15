@@ -17,9 +17,7 @@ class ToonBuilder
     /**
      * Create a new ToonBuilder instance.
      */
-    public function __construct(protected Toon $toon)
-    {
-    }
+    public function __construct(protected Toon $toon) {}
 
     /**
      * Set data from JSON string.
@@ -82,4 +80,3 @@ class ToonBuilder
         return $this->toon->decode($this->data);
     }
 }
-

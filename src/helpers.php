@@ -6,8 +6,7 @@ if (! function_exists('toon_encode')) {
     /**
      * Encode data to TOON format.
      *
-     * @param array|string $data
-     * @return string
+     * @param  array|string  $data
      */
     function toon_encode($data): string
     {
@@ -18,13 +17,9 @@ if (! function_exists('toon_encode')) {
 if (! function_exists('toon_decode')) {
     /**
      * Decode TOON format string to array.
-     *
-     * @param string $text
-     * @return array
      */
     function toon_decode(string $text): array
     {
         return Toon::decode($text);
     }
 }
-

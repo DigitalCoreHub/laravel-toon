@@ -237,7 +237,7 @@ class Toon
             if (count($values) !== count($keys)) {
                 $lineNumber = $currentIndex + 1;
                 throw new InvalidToonFormatException(
-                    "Key count (".count($keys).") does not match value count (".count($values).") at line {$lineNumber} in array block '{$arrayName}'."
+                    'Key count ('.count($keys).') does not match value count ('.count($values).") at line {$lineNumber} in array block '{$arrayName}'."
                 );
             }
 
@@ -334,7 +334,7 @@ class Toon
         if ($keyIndex < count($keys)) {
             $lineNumber = $currentIndex > 0 ? $currentIndex + 1 : $startIndex + 2;
             throw new InvalidToonFormatException(
-                "Key count (".count($keys).") does not match value count ({$keyIndex}) at line {$lineNumber}."
+                'Key count ('.count($keys).") does not match value count ({$keyIndex}) at line {$lineNumber}."
             );
         }
 
