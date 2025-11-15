@@ -4,6 +4,8 @@ namespace DigitalCoreHub\Toon;
 
 use DigitalCoreHub\Toon\Console\ToonStyler;
 use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
+use DigitalCoreHub\Toon\Lazy\LazyEncoder;
+use DigitalCoreHub\Toon\Streaming\StreamEncoder;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Toon
@@ -153,6 +155,51 @@ class Toon
         $toon = $this->encode($data);
 
         return ToonStyler::colorize($toon, $output);
+    }
+
+    /**
+     * Encode JSON file to TOON format using streaming (memory-efficient for large files).
+     */
+    public function encodeStream(string $inputPath, string $outputPath): void
+    {
+        $encoder = new StreamEncoder($this);
+        $encoder->encodeStream($inputPath, $outputPath);
+    }
+
+    /**
+     * Create a lazy encoder that produces TOON output line by line.
+     */
+    public function lazy(array|string $data): LazyEncoder
+    {
+        if (is_string($data)) {
+            $decoded = json_decode($data, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \InvalidArgumentException('Invalid JSON string provided');
+            }
+            $data = $decoded;
+        }
+
+        return new LazyEncoder($this, $data);
+    }
+
+    /**
+     * Decode TOON file using streaming (experimental foundation).
+     */
+    public function decodeStream(string $inputPath): \Generator
+    {
+        // Experimental: Just tokenize line by line, full parsing in v0.6
+        $handle = fopen($inputPath, 'r');
+        if ($handle === false) {
+            throw new \RuntimeException("Could not open file: {$inputPath}");
+        }
+
+        try {
+            while (($line = fgets($handle)) !== false) {
+                yield trim($line);
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 
     /**
@@ -563,10 +610,11 @@ class Toon
      */
     protected function encodeObject(array $object, int $indentLevel = 0): string
     {
-        $indentSize = $this->config('indentation', 4);
-        $keySeparator = $this->config('key_separator', ', ');
+        $compact = $this->config('compact', false);
+        $indentSize = $compact ? 0 : $this->config('indentation', 4);
+        $keySeparator = $compact ? ',' : $this->config('key_separator', ', ');
         $lineBreak = $this->config('line_break', PHP_EOL);
-        $indent = str_repeat(' ', $indentLevel * $indentSize);
+        $indent = $compact ? '' : str_repeat(' ', $indentLevel * $indentSize);
         $lines = [];
 
         // Get all keys in order
@@ -634,10 +682,11 @@ class Toon
      */
     protected function encodeArray(array $array, int $indentLevel = 0, ?string $arrayKeyName = null): string
     {
-        $indentSize = $this->config('indentation', 4);
-        $keySeparator = $this->config('key_separator', ', ');
+        $compact = $this->config('compact', false);
+        $indentSize = $compact ? 0 : $this->config('indentation', 4);
+        $keySeparator = $compact ? ',' : $this->config('key_separator', ', ');
         $lineBreak = $this->config('line_break', PHP_EOL);
-        $indent = str_repeat(' ', $indentLevel * $indentSize);
+        $indent = $compact ? '' : str_repeat(' ', $indentLevel * $indentSize);
         $count = count($array);
         $lines = [];
 
@@ -650,7 +699,8 @@ class Toon
             // Get keys from first object (assuming all objects have same structure)
             $firstObjectKeys = array_keys($array[0]);
             $keysLine = implode($keySeparator, $firstObjectKeys).';';
-            $lines[] = $indent.str_repeat(' ', $indentSize).$keysLine;
+            $innerIndent = $compact ? '' : str_repeat(' ', $indentSize);
+            $lines[] = $indent.$innerIndent.$keysLine;
 
             // Encode each object's values on separate lines
             foreach ($array as $item) {
@@ -661,7 +711,8 @@ class Toon
                         $values[] = $this->encodeValue($value, $indentLevel);
                     }
                     $valuesLine = implode($keySeparator, $values);
-                    $lines[] = $indent.str_repeat(' ', $indentSize).$valuesLine;
+                    $innerIndent = $compact ? '' : str_repeat(' ', $indentSize);
+                    $lines[] = $indent.$innerIndent.$valuesLine;
                 }
             }
         } else {
@@ -680,7 +731,8 @@ class Toon
                     }
                 } else {
                     // Primitive value
-                    $lines[] = $indent.str_repeat(' ', $indentSize).$this->encodeValue($item, $indentLevel);
+                    $innerIndent = $compact ? '' : str_repeat(' ', $indentSize);
+                    $lines[] = $indent.$innerIndent.$this->encodeValue($item, $indentLevel);
                 }
             }
         }

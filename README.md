@@ -2,7 +2,7 @@
 
 A lightweight Laravel package that converts standard JSON into **TOON** format - a human-readable, ultra-minimal, line-based data format.
 
-[![Latest Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Latest Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-red.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
 
@@ -219,6 +219,131 @@ The integration is **automatic** - no configuration needed. If Debugbar is not i
 
 **Note:** Debugbar integration is optional and does not affect package functionality if Debugbar is not installed.
 
+### Streaming Encoder
+
+For large JSON files, use the streaming encoder to avoid loading everything into memory:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+// Encode large JSON file to TOON format
+Toon::encodeStream('storage/large.json', 'storage/large.toon');
+
+// Support for Laravel Storage disks
+Toon::encodeStream('local:data.json', 'local:data.toon');
+```
+
+The streaming encoder:
+- Reads JSON file efficiently
+- Writes TOON output progressively
+- Reduces memory usage for large files
+- Supports both local paths and Laravel Storage disks
+
+### Lazy Encoder
+
+Get TOON output line by line using a generator:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+$data = ['id' => 1, 'name' => 'Test', 'items' => [1, 2, 3]];
+
+// Generate lines one by one
+foreach (Toon::lazy($data) as $line) {
+    echo $line . "\n";
+}
+
+// Or write directly to file
+Toon::lazy($data)->toFile('output.toon');
+
+// Or get as array
+$lines = Toon::lazy($data)->toArray();
+```
+
+Lazy encoder is perfect for:
+- Large datasets
+- Real-time output
+- Memory-constrained environments
+- Terminal/console output
+
+### Compact Mode
+
+Enable compact mode for smaller, faster output:
+
+```php
+// In config/toon.php
+'compact' => true,
+```
+
+Compact mode:
+- Removes extra whitespace
+- Uses minimal separators (no spaces after commas)
+- Produces smaller files
+- Faster encoding/decoding
+
+**Example:**
+
+```php
+config(['toon.compact' => true]);
+
+$data = ['id' => 1, 'name' => 'Test'];
+$toon = Toon::encode($data);
+// Output: id,name;1,Test (no spaces)
+```
+
+### Benchmarking
+
+Measure performance with the benchmark command:
+
+```bash
+php artisan toon:bench tests/bench/large.json
+```
+
+The benchmark shows:
+- Encode speed (milliseconds)
+- Decode speed (milliseconds)
+- Memory usage (peak and used)
+- Total rows processed
+- Total keys processed
+- File size comparison
+
+**Example Output:**
+
+```
+ENCODE: 87.23 ms
+DECODE: 114.56 ms
+Memory Peak: 4.3 MB
+Memory Used: 2.1 MB
+Rows: 220
+Keys: 14
+TOON Size: 15,432 bytes
+JSON Size: 18,765 bytes
+```
+
+### Performance Best Practices
+
+1. **Use streaming for large files:**
+   ```php
+   Toon::encodeStream($input, $output); // Memory-efficient
+   ```
+
+2. **Enable compact mode in production:**
+   ```php
+   config(['toon.compact' => true]); // Smaller, faster
+   ```
+
+3. **Use lazy encoder for real-time output:**
+   ```php
+   foreach (Toon::lazy($data) as $line) {
+       // Process line by line
+   }
+   ```
+
+4. **Monitor performance:**
+   ```bash
+   php artisan toon:bench your-file.json
+   ```
+
 ### Decode TOON to Array
 
 ```php
@@ -391,6 +516,34 @@ $ php artisan toon:decode invalid.toon output.json
 Invalid TOON format: Keys line must end with semicolon
 ```
 
+### Benchmark: Performance Testing
+
+Measure TOON encode/decode performance:
+
+```bash
+php artisan toon:bench [file]
+```
+
+**Options:**
+- `file`: Optional path to JSON file. If not provided, uses first file from `tests/bench/` directory.
+
+**Example:**
+
+```bash
+# Benchmark a specific file
+php artisan toon:bench storage/large.json
+
+# Use default benchmark file
+php artisan toon:bench
+```
+
+The benchmark command displays:
+- Encode speed (milliseconds)
+- Decode speed (milliseconds)
+- Memory usage (peak and used)
+- Total rows and keys processed
+- File size comparison (TOON vs JSON)
+
 ## TOON Format Rules
 
 The TOON format follows these rules:
@@ -501,8 +654,9 @@ You can access configuration values in your code:
 ```php
 use Illuminate\Support\Facades\Config;
 
-$indentSize = config('toon.indent_size');
+$indentSize = config('toon.indentation');
 $preserveOrder = config('toon.preserve_order');
+$compact = config('toon.compact');
 ```
 
 **Note:** The configuration file is optional. If you don't publish it, the package will use default values.
@@ -583,11 +737,16 @@ reviews[2]{
 
 ## Version
 
-Current version: **v0.4.0**
+Current version: **v0.5.0**
 
 This version includes:
 - ✅ JSON → TOON encoding
 - ✅ TOON → JSON decoding
+- ✅ **Streaming encoder** for large files (`encodeStream`)
+- ✅ **Lazy encoder** for line-by-line output (`lazy`)
+- ✅ **Benchmark command** (`php artisan toon:bench`)
+- ✅ **Compact mode** for smaller, faster output
+- ✅ **Experimental streaming decode** (`decodeStream`)
 - ✅ CLI commands (encode & decode) with colored preview
 - ✅ Global helper functions (`toon_encode`, `toon_decode`)
 - ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)

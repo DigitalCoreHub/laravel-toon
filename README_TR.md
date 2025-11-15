@@ -2,7 +2,7 @@
 
 Standart JSON'u **TOON** formatına dönüştüren hafif bir Laravel paketi - insan tarafından okunabilir, ultra-minimal, satır tabanlı bir veri formatı.
 
-[![Son Sürüm](https://img.shields.io/badge/sürüm-0.4.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
+[![Son Sürüm](https://img.shields.io/badge/sürüm-0.5.0-mavi.svg)](https://github.com/digitalcorehub/laravel-toon)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-kırmızı.svg)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.3%2B-mavi.svg)](https://php.net)
 
@@ -219,6 +219,131 @@ Entegrasyon **otomatik** - yapılandırma gerekmez. Debugbar yüklü değilse, p
 
 **Not:** Debugbar entegrasyonu opsiyoneldir ve Debugbar yüklü değilse paket işlevselliğini etkilemez.
 
+### Streaming Encoder
+
+Büyük JSON dosyaları için, her şeyi belleğe yüklemekten kaçınmak için streaming encoder kullanın:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+// Büyük JSON dosyasını TOON formatına kodla
+Toon::encodeStream('storage/large.json', 'storage/large.toon');
+
+// Laravel Storage disk desteği
+Toon::encodeStream('local:data.json', 'local:data.toon');
+```
+
+Streaming encoder:
+- JSON dosyasını verimli bir şekilde okur
+- TOON çıktısını aşamalı olarak yazar
+- Büyük dosyalar için bellek kullanımını azaltır
+- Hem yerel yolları hem de Laravel Storage disklerini destekler
+
+### Lazy Encoder
+
+Generator kullanarak TOON çıktısını satır satır alın:
+
+```php
+use DigitalCoreHub\Toon\Facades\Toon;
+
+$data = ['id' => 1, 'name' => 'Test', 'items' => [1, 2, 3]];
+
+// Satır satır üret
+foreach (Toon::lazy($data) as $line) {
+    echo $line . "\n";
+}
+
+// Veya doğrudan dosyaya yaz
+Toon::lazy($data)->toFile('output.toon');
+
+// Veya dizi olarak al
+$lines = Toon::lazy($data)->toArray();
+```
+
+Lazy encoder şunlar için mükemmeldir:
+- Büyük veri setleri
+- Gerçek zamanlı çıktı
+- Bellek kısıtlı ortamlar
+- Terminal/konsol çıktısı
+
+### Compact Mode
+
+Daha küçük, daha hızlı çıktı için compact mode'u etkinleştirin:
+
+```php
+// config/toon.php içinde
+'compact' => true,
+```
+
+Compact mode:
+- Ekstra boşlukları kaldırır
+- Minimal ayırıcılar kullanır (virgüllerden sonra boşluk yok)
+- Daha küçük dosyalar üretir
+- Daha hızlı kodlama/çözümleme
+
+**Örnek:**
+
+```php
+config(['toon.compact' => true]);
+
+$data = ['id' => 1, 'name' => 'Test'];
+$toon = Toon::encode($data);
+// Çıktı: id,name;1,Test (boşluk yok)
+```
+
+### Benchmarking
+
+Benchmark komutu ile performansı ölçün:
+
+```bash
+php artisan toon:bench tests/bench/large.json
+```
+
+Benchmark şunları gösterir:
+- Encode hızı (milisaniye)
+- Decode hızı (milisaniye)
+- Bellek kullanımı (peak ve kullanılan)
+- İşlenen toplam satır
+- İşlenen toplam anahtar
+- Dosya boyutu karşılaştırması
+
+**Örnek Çıktı:**
+
+```
+ENCODE: 87.23 ms
+DECODE: 114.56 ms
+Memory Peak: 4.3 MB
+Memory Used: 2.1 MB
+Rows: 220
+Keys: 14
+TOON Size: 15,432 bytes
+JSON Size: 18,765 bytes
+```
+
+### Performans En İyi Uygulamaları
+
+1. **Büyük dosyalar için streaming kullanın:**
+   ```php
+   Toon::encodeStream($input, $output); // Bellek verimli
+   ```
+
+2. **Production'da compact mode'u etkinleştirin:**
+   ```php
+   config(['toon.compact' => true]); // Daha küçük, daha hızlı
+   ```
+
+3. **Gerçek zamanlı çıktı için lazy encoder kullanın:**
+   ```php
+   foreach (Toon::lazy($data) as $line) {
+       // Satır satır işle
+   }
+   ```
+
+4. **Performansı izleyin:**
+   ```bash
+   php artisan toon:bench your-file.json
+   ```
+
 ### TOON'u Diziye Dönüştürme (Decode)
 
 ```php
@@ -391,6 +516,34 @@ $ php artisan toon:decode invalid.toon output.json
 Invalid TOON format: Keys line must end with semicolon
 ```
 
+### Benchmark: Performans Testi
+
+TOON encode/decode performansını ölçün:
+
+```bash
+php artisan toon:bench [file]
+```
+
+**Seçenekler:**
+- `file`: Opsiyonel JSON dosya yolu. Belirtilmezse `tests/bench/` dizinindeki ilk dosyayı kullanır.
+
+**Örnek:**
+
+```bash
+# Belirli bir dosyayı benchmark et
+php artisan toon:bench storage/large.json
+
+# Varsayılan benchmark dosyasını kullan
+php artisan toon:bench
+```
+
+Benchmark komutu şunları gösterir:
+- Encode hızı (milisaniye)
+- Decode hızı (milisaniye)
+- Bellek kullanımı (peak ve kullanılan)
+- İşlenen toplam satır ve anahtar
+- Dosya boyutu karşılaştırması (TOON vs JSON)
+
 ## TOON Format Kuralları
 
 TOON formatı şu kuralları takip eder:
@@ -491,6 +644,17 @@ return [
     |
     */
     'preserve_order' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Compact Mode
+    |--------------------------------------------------------------------------
+    |
+    | Etkinleştirildiğinde, ekstra boşlukları kaldırarak daha hızlı ve küçük çıktı üretir.
+    | Dosya boyutunun önemli olduğu production ortamları için kullanışlıdır.
+    |
+    */
+    'compact' => false,
 ];
 ```
 
@@ -583,11 +747,16 @@ reviews[2]{
 
 ## Sürüm
 
-Mevcut sürüm: **v0.4.0**
+Mevcut sürüm: **v0.5.0**
 
 Bu sürüm şunları içerir:
 - ✅ JSON → TOON kodlama
 - ✅ TOON → JSON çözümleme
+- ✅ **Streaming encoder** büyük dosyalar için (`encodeStream`)
+- ✅ **Lazy encoder** satır satır çıktı için (`lazy`)
+- ✅ **Benchmark komutu** (`php artisan toon:bench`)
+- ✅ **Compact mode** daha küçük, daha hızlı çıktı için
+- ✅ **Deneysel streaming decode** (`decodeStream`)
 - ✅ CLI komutları (encode & decode) renkli önizleme ile
 - ✅ Global helper fonksiyonlar (`toon_encode`, `toon_decode`)
 - ✅ Fluent interface (`fromJson`, `fromArray`, `fromToon`)

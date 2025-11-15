@@ -71,4 +71,15 @@ return [
     |
     */
     'logging_channel' => 'stack',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Compact Mode
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, removes extra whitespace for faster and smaller output.
+    | Useful for production environments where file size matters.
+    |
+    */
+    'compact' => false,
 ];

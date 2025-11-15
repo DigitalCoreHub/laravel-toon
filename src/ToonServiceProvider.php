@@ -3,6 +3,7 @@
 namespace DigitalCoreHub\Toon;
 
 use DigitalCoreHub\Toon\Blade\ToonDirective;
+use DigitalCoreHub\Toon\Commands\ToonBenchCommand;
 use DigitalCoreHub\Toon\Commands\ToonDecodeCommand;
 use DigitalCoreHub\Toon\Commands\ToonEncodeCommand;
 use DigitalCoreHub\Toon\Debug\ToonCollector;
@@ -51,6 +52,7 @@ class ToonServiceProvider extends ServiceProvider
             $this->commands([
                 ToonEncodeCommand::class,
                 ToonDecodeCommand::class,
+                ToonBenchCommand::class,
             ]);
         }
     }

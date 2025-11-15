@@ -341,4 +341,82 @@ class ToonTest extends TestCase
         $this->assertStringContainsString('e(', $compiled);
         $this->assertStringContainsString('Toon::encode', $compiled);
     }
+
+    /**
+     * Test lazy encoder.
+     */
+    public function test_lazy_encoder(): void
+    {
+        $data = ['id' => 1, 'name' => 'Test'];
+        $lazy = Toon::lazy($data);
+
+        $lines = [];
+        foreach ($lazy->generate() as $line) {
+            $lines[] = $line;
+        }
+
+        $this->assertNotEmpty($lines);
+        $this->assertStringContainsString('id', implode("\n", $lines));
+    }
+
+    /**
+     * Test compact mode.
+     */
+    public function test_compact_mode(): void
+    {
+        config(['toon.compact' => true]);
+
+        $data = ['id' => 1, 'name' => 'Test'];
+        $result = Toon::encode($data);
+
+        // Compact mode should have no spaces after commas
+        $this->assertStringContainsString('id,name;', $result);
+        $this->assertStringNotContainsString('id, name;', $result);
+    }
+
+    /**
+     * Test encodeStream method.
+     */
+    public function test_encode_stream(): void
+    {
+        // Create temporary test files
+        $inputFile = sys_get_temp_dir().'/toon_test_input.json';
+        $outputFile = sys_get_temp_dir().'/toon_test_output.toon';
+
+        $testData = ['id' => 1, 'name' => 'Test'];
+        file_put_contents($inputFile, json_encode($testData));
+
+        try {
+            Toon::encodeStream($inputFile, $outputFile);
+
+            $this->assertFileExists($outputFile);
+            $output = file_get_contents($outputFile);
+            $this->assertStringContainsString('id', $output);
+        } finally {
+            @unlink($inputFile);
+            @unlink($outputFile);
+        }
+    }
+
+    /**
+     * Test decodeStream (experimental).
+     */
+    public function test_decode_stream(): void
+    {
+        // Create temporary test file
+        $testFile = sys_get_temp_dir().'/toon_test_decode.toon';
+        file_put_contents($testFile, "id, name;\n1, Test");
+
+        try {
+            $lines = [];
+            foreach (Toon::decodeStream($testFile) as $line) {
+                $lines[] = $line;
+            }
+
+            $this->assertNotEmpty($lines);
+            $this->assertContains('id, name;', $lines);
+        } finally {
+            @unlink($testFile);
+        }
+    }
 }
