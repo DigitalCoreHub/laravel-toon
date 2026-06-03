@@ -2,10 +2,13 @@
 
 namespace DigitalCoreHub\Toon\Tests;
 
+use DigitalCoreHub\Toon\Blade\ToonDirective;
 use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
 use DigitalCoreHub\Toon\Facades\Toon;
+use Illuminate\Log\LogManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ToonTest extends TestCase
 {
@@ -295,7 +298,7 @@ class ToonTest extends TestCase
         $logManager = app('log');
 
         // Verify LogManager exists
-        $this->assertInstanceOf(\Illuminate\Log\LogManager::class, $logManager);
+        $this->assertInstanceOf(LogManager::class, $logManager);
 
         // Verify ServiceProvider registered the macro attempt
         // LogManager may or may not support macros depending on Laravel version
@@ -335,7 +338,7 @@ class ToonTest extends TestCase
     public function test_blade_directive(): void
     {
         $data = ['id' => 1, 'name' => 'Test'];
-        $compiled = \DigitalCoreHub\Toon\Blade\ToonDirective::compile('$data');
+        $compiled = ToonDirective::compile('$data');
 
         // Should contain pre tag and escape function
         $this->assertStringContainsString('<pre>', $compiled);
@@ -487,7 +490,7 @@ class ToonTest extends TestCase
         $data = ['name' => 'Test', 'id' => 1];
         $response = Toon::download('test-file', $data);
 
-        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\StreamedResponse::class, $response);
+        $this->assertInstanceOf(StreamedResponse::class, $response);
         $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('test-file.toon', $response->headers->get('Content-Disposition'));
     }
@@ -621,7 +624,7 @@ class ToonTest extends TestCase
         $jsonString = '{"id": 1, "name": "Test"}';
         $response = Toon::download('json-download', $jsonString);
 
-        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\StreamedResponse::class, $response);
+        $this->assertInstanceOf(StreamedResponse::class, $response);
         $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
 
         // Capture the streamed content
@@ -641,7 +644,7 @@ class ToonTest extends TestCase
         $object = (object) ['id' => 1, 'name' => 'Test'];
         $response = Toon::download('object-download', $object);
 
-        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\StreamedResponse::class, $response);
+        $this->assertInstanceOf(StreamedResponse::class, $response);
         $this->assertEquals('text/toon', $response->headers->get('Content-Type'));
     }
 

@@ -2,6 +2,7 @@
 
 namespace DigitalCoreHub\Toon;
 
+use Barryvdh\Debugbar\LaravelDebugbar;
 use DigitalCoreHub\Toon\Blade\ToonDirective;
 use DigitalCoreHub\Toon\Commands\ToonBenchCommand;
 use DigitalCoreHub\Toon\Commands\ToonDecodeCommand;
@@ -68,7 +69,7 @@ class ToonServiceProvider extends ServiceProvider
      */
     protected function registerDebugbarCollector(): void
     {
-        if (! class_exists(\Barryvdh\Debugbar\LaravelDebugbar::class)) {
+        if (! class_exists(LaravelDebugbar::class)) {
             return;
         }
 

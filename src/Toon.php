@@ -2,6 +2,7 @@
 
 namespace DigitalCoreHub\Toon;
 
+use Barryvdh\Debugbar\LaravelDebugbar;
 use DigitalCoreHub\Toon\Console\ToonStyler;
 use DigitalCoreHub\Toon\Exceptions\InvalidToonFormatException;
 use DigitalCoreHub\Toon\Lazy\LazyEncoder;
@@ -144,7 +145,7 @@ class Toon
      */
     protected function hasDebugbar(): bool
     {
-        return class_exists(\Barryvdh\Debugbar\LaravelDebugbar::class) &&
+        return class_exists(LaravelDebugbar::class) &&
                app()->bound('debugbar') &&
                app('debugbar')->hasCollector('toon');
     }
